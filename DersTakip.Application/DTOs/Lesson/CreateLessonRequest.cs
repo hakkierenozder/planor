@@ -13,5 +13,11 @@ namespace DersTakip.Application.DTOs.Lesson
         public int DurationMinutes { get; set; } // 60, 45, 90...
         public string? Topic { get; set; } // "Logaritma Giriş"
         public string? InternalNotes { get; set; } // "Çok yorgundu"
+
+        public bool IsRecurring { get; set; } = false; // Tekrar ediyor mu?
+        public int? RecurringCount { get; set; } // Kaç hafta tekrar etsin? (Örn: 4)
+
+        public bool HasHomework { get; set; }
+        public string? HomeworkDescription { get; set; }
     }
 }

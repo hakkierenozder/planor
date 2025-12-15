@@ -28,19 +28,45 @@ public class LessonsController : ControllerBase
         var student = await _studentRepository.GetByIdAsync(request.StudentId);
         if (student == null) return NotFound("Öğrenci bulunamadı.");
 
-        var lesson = new Lesson
-        {
-            StudentId = request.StudentId,
-            StartTime = request.StartTime,
-            DurationMinutes = request.DurationMinutes,
-            Topic = request.Topic,
-            InternalNotes = request.InternalNotes,
-            Status = LessonStatus.Scheduled,
-            PriceSnapshot = student.HourlyRate
-        };
+        // Eğer tekrar edecekse bir Grup ID oluştur, yoksa null olsun.
+        Guid? groupId = request.IsRecurring ? Guid.NewGuid() : null;
 
-        var createdLesson = await _lessonRepository.CreateAsync(lesson);
-        return Ok(createdLesson);
+        // Eğer tekrar sayısı girilmediyse ama tekrar seçildiyse varsayılan 4 hafta yapalım.
+        int count = request.IsRecurring ? (request.RecurringCount ?? 4) : 1;
+
+        // Oluşturulan dersleri tutacağımız liste (Dönüş değeri için)
+        var createdLessons = new List<Lesson>();
+
+        for (int i = 0; i < count; i++)
+        {
+            // Her döngüde tarihi 7 gün (bir hafta) ileri atıyoruz.
+            // i=0 iken: StartTime + 0 gün
+            // i=1 iken: StartTime + 7 gün ...
+            var lessonDate = request.StartTime.AddDays(i * 7);
+
+            var lesson = new Lesson
+            {
+                StudentId = request.StudentId,
+                StartTime = lessonDate, // <--- Hesaplanmış yeni tarih
+                DurationMinutes = request.DurationMinutes,
+                Topic = request.Topic,
+                InternalNotes = request.InternalNotes,
+                Status = LessonStatus.Scheduled,
+                PriceSnapshot = student.HourlyRate,
+                RecurringGroupId = groupId, // <--- Grup ID'yi basıyoruz,
+                HasHomework = request.HasHomework,
+                HomeworkDescription = request.HomeworkDescription
+            };
+
+            // Veritabanına kaydet
+            // Not: Performans için ilerde 'CreateRangeAsync' yazabilirsin ama şimdilik döngü yeterli.
+            var created = await _lessonRepository.CreateAsync(lesson);
+            createdLessons.Add(created);
+        }
+
+        // İlk oluşturulan dersi veya hepsini dönebilirsin.
+        // Frontend genelde tek bir onay beklediği için ilkini dönmek yeterlidir ama liste de dönebilirsin.
+        return Ok(createdLessons.FirstOrDefault());
     }
 
     [HttpGet("student/{studentId}")]

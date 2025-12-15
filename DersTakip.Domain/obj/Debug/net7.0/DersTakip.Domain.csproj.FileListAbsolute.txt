@@ -9,3 +9,4 @@ C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Domain\obj\Debu
 C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Domain\obj\Debug\net7.0\refint\DersTakip.Domain.dll
 C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Domain\obj\Debug\net7.0\DersTakip.Domain.pdb
 C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Domain\obj\Debug\net7.0\ref\DersTakip.Domain.dll
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Domain\obj\Debug\net7.0\DersTakip.Domain.sourcelink.json

@@ -23,5 +23,10 @@ namespace DersTakip.Domain.Entities
 
         // Navigation Property
         public Student Student { get; set; } = null!;
+
+        public Guid? RecurringGroupId { get; set; }
+
+        public bool HasHomework { get; set; } = false;
+        public string? HomeworkDescription { get; set; }
     }
 }

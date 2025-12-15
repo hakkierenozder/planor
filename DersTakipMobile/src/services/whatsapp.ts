@@ -1,7 +1,7 @@
 import { Linking, Alert } from 'react-native';
 
 export const whatsappService = {
-  
+
   send: async (phone: string, message: string) => {
     if (!phone) {
       Alert.alert("Hata", "Öğrencinin telefon numarası kayıtlı değil.");
@@ -10,10 +10,10 @@ export const whatsappService = {
 
     // Telefon numarasını temizle
     let cleanPhone = phone.replace(/[^\d]/g, '');
-    
+
     // Başındaki 0'ı sil
     if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
-    
+
     // Ülke kodu ekle (Yoksa 90 ekle)
     if (!cleanPhone.startsWith('90')) cleanPhone = '90' + cleanPhone;
 
@@ -42,8 +42,15 @@ export const whatsappService = {
       return `Teşekkürler, ${amount} TL ödemeniz alınmıştır. ✅\nGüncel kalan bakiye: ${remainingDebt} TL.`;
     },
 
-    lessonCompleted: (studentName: string, topic: string) => {
-      return `Merhaba, bugünkü "${topic}" dersimizi ${studentName} ile başarıyla tamamladık. İyi çalışmalar! 📚`;
+    lessonCompleted: (studentName: string, topic: string, homeworkDesc?: string) => {
+      let message = `Merhaba, bugünkü "${topic}" dersimizi ${studentName} ile başarıyla tamamladık. 📚`;
+
+      if (homeworkDesc) {
+        message += `\n\n📝 ÖDEV: ${homeworkDesc}\n(Lütfen bir sonraki derse kadar tamamlayalım.)`;
+      }
+
+      message += `\n\nİyi çalışmalar! 👋`;
+      return message;
     }
   }
 };

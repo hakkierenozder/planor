@@ -13,3 +13,4 @@ C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Application\obj
 C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Application\obj\Debug\net7.0\refint\DersTakip.Application.dll
 C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Application\obj\Debug\net7.0\DersTakip.Application.pdb
 C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Application\obj\Debug\net7.0\ref\DersTakip.Application.dll
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Application\obj\Debug\net7.0\DersTakip.Application.sourcelink.json

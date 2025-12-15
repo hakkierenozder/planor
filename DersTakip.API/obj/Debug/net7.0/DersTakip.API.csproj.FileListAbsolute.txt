@@ -58,4 +58,4 @@ C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.API\bin\Debug\n
 C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.API\bin\Debug\net7.0\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
 C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.API\bin\Debug\net7.0\Microsoft.IdentityModel.Tokens.dll
 C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.API\bin\Debug\net7.0\System.IdentityModel.Tokens.Jwt.dll
-C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.API\obj\Debug\net7.0\staticwebassets.upToDateCheck.txt
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.API\obj\Debug\net7.0\DersTakip.API.sourcelink.json
