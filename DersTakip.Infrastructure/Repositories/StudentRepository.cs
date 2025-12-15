@@ -49,9 +49,11 @@ public class StudentRepository : IStudentRepository
         // 2. Toplam Borcu Hesapla
         // Kural: Ders "Tamamlanmış" ise YA DA "İptal ama Ücretli" ise topla.
         var totalDebt = await _context.Lessons
-            .Where(l => l.StudentId == studentId && !l.IsDeleted)
-            .Where(l => l.Status == LessonStatus.Completed || (l.Status == LessonStatus.Cancelled && l.IsCharged))
-            .SumAsync(l => l.PriceSnapshot);
+                    .Where(l => l.StudentId == studentId && !l.IsDeleted)
+                    // SADECE "Krediyle Ödenmemiş" (IsPaidByCredit == false) dersleri topla
+                    .Where(l => !l.IsPaidByCredit) // <--- KRİTİK DÜZELTME BURADA
+                    .Where(l => l.Status == LessonStatus.Completed || (l.Status == LessonStatus.Cancelled && l.IsCharged))
+                    .SumAsync(l => l.PriceSnapshot);
 
         // 3. Toplam Ödemeyi Hesapla
         var totalPayment = await _context.Payments

@@ -28,5 +28,7 @@ namespace DersTakip.Domain.Entities
 
         public bool HasHomework { get; set; } = false;
         public string? HomeworkDescription { get; set; }
+
+        public bool IsPaidByCredit { get; set; } = false; // Krediyle mi ödendi?
     }
 }

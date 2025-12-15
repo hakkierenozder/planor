@@ -1,10 +1,13 @@
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useState } from 'react';
 import {
     Modal, View, Text, StyleSheet, TouchableOpacity,
     ActivityIndicator, FlatList, Alert, TextInput, Platform, SafeAreaView, Switch
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { studentService, lessonService, paymentService } from '../services/api';
+import { studentService, lessonService, paymentService, API_URL } from '../services/api';
 import { whatsappService } from '../services/whatsapp';
 
 const COLORS = {
@@ -16,7 +19,10 @@ const COLORS = {
     greenLight: '#D1FAE5',
     greenText: '#065F46',
     redLight: '#FEE2E2',
-    redText: '#991B1B'
+    redText: '#991B1B',
+
+    success: '#10B981', // Yeşil (Kredi var)
+    danger: '#EF4444'   // Kırmızı (Kredi yok/Borç)
 };
 
 interface StudentDetailModalProps {
@@ -35,18 +41,27 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
     // Form Görünürlükleri
     const [showLessonForm, setShowLessonForm] = useState(false);
     const [showPaymentForm, setShowPaymentForm] = useState(false);
-    const [showEditForm, setShowEditForm] = useState(false); // <--- Overlay olarak kullanılacak
+    const [showEditForm, setShowEditForm] = useState(false);
 
     // Düzenleme Formu Verileri
     const [editName, setEditName] = useState('');
     const [editPhone, setEditPhone] = useState('');
     const [editRate, setEditRate] = useState('');
 
-    const [isRecurring, setIsRecurring] = useState(false); // Tekrar modu açık mı?
-    const [recurringCount, setRecurringCount] = useState('4'); // Kaç hafta? (Varsayılan 4)
+    const [isRecurring, setIsRecurring] = useState(false);
+    const [recurringCount, setRecurringCount] = useState('4');
 
     const [hasHomework, setHasHomework] = useState(false);
     const [homeworkDesc, setHomeworkDesc] = useState('');
+
+    // PAKET SİSTEMİ STATE'LERİ
+    const [showPackageForm, setShowPackageForm] = useState(false);
+    const [packageCredits, setPackageCredits] = useState('');
+    const [packagePrice, setPackagePrice] = useState('');
+    const [currentCredits, setCurrentCredits] = useState(student?.credits || 0);
+
+    // --- EKLENEN STATE: KREDİ KULLANIMI ---
+    const [useCredit, setUseCredit] = useState(false);
 
     const openEditModal = () => {
         setEditName(student.fullName);
@@ -76,6 +91,9 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
                 paymentService.getByStudent(student.id)
             ]);
             setBalanceInfo(balanceRes);
+            // Güncel krediyi backend'den alıp state'i güncelle (varsa)
+            if(balanceRes && balanceRes.credits !== undefined) setCurrentCredits(balanceRes.credits);
+
             setLessons(lessonsRes);
             setPayments(paymentsRes);
         } catch (error) { Alert.alert("Hata", "Veri çekilemedi"); }
@@ -91,9 +109,56 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
         } catch (e) { Alert.alert("Hata", "İşlem başarısız"); }
     };
 
+    const handleShareStatement = async () => {
+        try {
+            setLoading(true);
+            const token = await AsyncStorage.getItem('userToken');
+            if (!token) {
+                Alert.alert("Hata", "Oturum süreniz dolmuş.");
+                return;
+            }
+
+            const safeName = student.fullName.replace(/[^a-zA-Z0-9]/g, "_");
+            const fileName = `Ekstre_${safeName}.pdf`;
+            const dir = FileSystem.documentDirectory || FileSystem.cacheDirectory;
+            if (!dir) throw new Error("Dizin bulunamadı");
+
+            const fileUri = dir + fileName;
+
+            const downloadRes = await FileSystem.downloadAsync(
+                `${API_URL}/students/${student.id}/statement`,
+                fileUri,
+                {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                }
+            );
+
+            if (downloadRes.status !== 200) {
+                Alert.alert("Hata", "PDF oluşturulurken sunucu hatası oluştu.");
+                return;
+            }
+
+            if (await Sharing.isAvailableAsync()) {
+                await Sharing.shareAsync(fileUri, {
+                    mimeType: 'application/pdf',
+                    dialogTitle: `${student.fullName} Hesap Ekstresi`,
+                    UTI: 'com.adobe.pdf'
+                });
+            } else {
+                Alert.alert("Bilgi", "Paylaşım özelliği bu cihazda desteklenmiyor.");
+            }
+
+        } catch (error) {
+            console.error(error);
+            Alert.alert("Hata", "Ekstre indirilemedi. İnternet bağlantınızı kontrol edin.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleAddLesson = async () => {
         if (!duration) return;
-        const tzOffset = date.getTimezoneOffset() * 60000; // Dakika farkını milisaniyeye çevir
+        const tzOffset = date.getTimezoneOffset() * 60000;
         const localISOTime = new Date(date.getTime() - tzOffset).toISOString().slice(0, -1);
         try {
             await lessonService.create({
@@ -102,11 +167,12 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
                 durationMinutes: parseInt(duration),
                 topic: topic || "Genel Tekrar",
                 internalNotes: "",
-                // YENİ EKLENEN KISIMLAR:
                 isRecurring: isRecurring,
                 recurringCount: isRecurring ? parseInt(recurringCount) : 1,
                 hasHomework: hasHomework,
-                homeworkDescription: hasHomework ? homeworkDesc : ""
+                homeworkDescription: hasHomework ? homeworkDesc : "",
+                // --- GÜNCELLENEN KISIM: Kredi bilgisini gönder ---
+                useCredit: useCredit
             });
 
             // Formu temizle ve kapat
@@ -115,24 +181,52 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
             setShowLessonForm(false);
             setTopic('');
             setDuration('60');
-            setIsRecurring(false); // Sıfırla
-            setRecurringCount('4'); // Sıfırla
+            setIsRecurring(false);
+            setRecurringCount('4');
+            setUseCredit(false); // Switch'i sıfırla
+
             fetchDetails();
 
             Alert.alert("Başarılı", isRecurring ? `${recurringCount} haftalık ders planlandı! 📅` : "Ders eklendi! ✅");
 
         } catch (error: any) {
-            // HATA YÖNETİMİ GÜNCELLEMESİ:
-            // Eğer sunucu bize özel bir mesaj gönderdiyse (örn: Çakışma var), onu gösterelim.
             if (error.response && error.response.data) {
                 Alert.alert(
                     error.response.data.message || "Hata",
                     error.response.data.detail || "Sunucu hatası oluştu."
                 );
             } else {
-                // Sunucuya hiç ulaşamazsa (internet yoksa vs.) bunu göster.
                 Alert.alert("Hata", "İşlem başarısız. İnternet bağlantınızı kontrol edin.");
             }
+        }
+    };
+
+    const handleBuyPackage = async () => {
+        if (!packageCredits || !packagePrice) {
+            Alert.alert("Uyarı", "Lütfen ders adedi ve fiyatı giriniz.");
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const response = await studentService.addPackage({
+                studentId: student.id,
+                creditAmount: parseInt(packageCredits),
+                totalPrice: parseFloat(packagePrice),
+                packageName: `${packageCredits} Derslik Paket`
+            });
+
+            Alert.alert("Başarılı", "Paket tanımlandı! 📦");
+            setCurrentCredits(response.newBalance);
+            setShowPackageForm(false);
+            setPackageCredits('');
+            setPackagePrice('');
+            fetchDetails();
+
+        } catch (error) {
+            Alert.alert("Hata", "Paket eklenirken bir sorun oluştu.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -170,7 +264,7 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
             });
             Alert.alert("Başarılı", "Bilgiler güncellendi ✅");
             setShowEditForm(false);
-            onClose(); // Ana modalı kapatıp yenilenmesini sağla
+            onClose();
         } catch (error) {
             Alert.alert("Hata", "Güncelleme yapılamadı.");
         }
@@ -195,7 +289,13 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
 
                     <Text style={styles.headerTitle}>{student.fullName}</Text>
 
-                    {/* DÜZENLE BUTONU */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 5 }}>
+                        <Text style={{ fontSize: 14, color: '#666' }}>Bakiye: </Text>
+                        <Text style={{ fontSize: 16, fontWeight: 'bold', color: currentCredits > 0 ? COLORS.success : COLORS.danger }}>
+                            {currentCredits} Ders Kredisi 🎫
+                        </Text>
+                    </View>
+
                     <TouchableOpacity onPress={openEditModal} style={[styles.backBtn, { backgroundColor: '#EEF2FF' }]}>
                         <Text style={{ fontSize: 20 }}>✏️</Text>
                     </TouchableOpacity>
@@ -255,16 +355,14 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
                                             <TouchableOpacity
                                                 style={[styles.iconBtn, { backgroundColor: '#E0F2F1', marginRight: 8 }]}
                                                 onPress={() => {
-                                                    // Eğer ders tamamlanmışsa (Status=2 veya Completed) tamamlandı mesajı at
                                                     if (item.status === 2 || item.status === "Completed") {
                                                         const msg = whatsappService.templates.lessonCompleted(
                                                             student.fullName,
                                                             item.topic,
-                                                            item.homeworkDescription // <--- Backend'den gelen veri
+                                                            item.homeworkDescription
                                                         );
                                                         whatsappService.send(student.phoneNumber, msg);
                                                     } else {
-                                                        // Tamamlanmamışsa planlama mesajı at (Eski mantık)
                                                         const msg = whatsappService.templates.lessonCreated(
                                                             student.fullName,
                                                             new Date(item.startTime),
@@ -301,8 +399,6 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
                                             <TouchableOpacity
                                                 style={[styles.iconBtn, { backgroundColor: '#E0F2F1', marginRight: 8 }]}
                                                 onPress={() => {
-                                                    // Kalan borcu hesaplamak için elimizdeki veriyi kullanabiliriz
-                                                    // veya basitçe bakiyeyi yazdırabiliriz.
                                                     const currentDebt = balanceInfo?.currentBalance || 0;
                                                     const msg = whatsappService.templates.paymentReceived(item.amount, currentDebt);
                                                     whatsappService.send(student.phoneNumber, msg);
@@ -322,14 +418,25 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
                             <TouchableOpacity onPress={() => setShowPaymentForm(true)} style={[styles.actionBtn, { backgroundColor: '#F59E0B' }]}>
                                 <Text style={styles.actionIcon}>💰</Text>
                             </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={handleShareStatement}
+                                style={[styles.actionBtn, { backgroundColor: '#8B5CF6', marginHorizontal: 10 }]}
+                            >
+                                <Text style={styles.actionIcon}>📄</Text>
+                            </TouchableOpacity>
                             <TouchableOpacity onPress={() => setShowLessonForm(true)} style={[styles.actionBtn, { backgroundColor: COLORS.primary }]}>
                                 <Text style={styles.actionIcon}>📅</Text>
                             </TouchableOpacity>
+
+                            <TouchableOpacity
+                                onPress={() => setShowPackageForm(!showPackageForm)}
+                                style={[styles.actionBtn, { backgroundColor: '#EC4899', marginLeft: 10 }]}
+                            >
+                                <Text style={styles.actionIcon}>🎁</Text>
+                            </TouchableOpacity>
                         </View>
 
-                        {/* --- MODAL YERİNE OVERLAY KULLANIYORUZ --- */}
-                        {/* Tüm formlar (Ders Ekle, Ödeme Al, Öğrenci Düzenle) burada aynı mantıkla çalışır */}
-
+                        {/* OVERLAY FORMS */}
                         {(showLessonForm || showPaymentForm || showEditForm) && (
                             <View style={styles.formOverlay}>
                                 <View style={styles.formCard}>
@@ -342,7 +449,26 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
                                             <TextInput style={styles.input} placeholder="Konu" value={topic} onChangeText={setTopic} />
                                             <TextInput style={styles.input} placeholder="Süre (dk)" keyboardType="numeric" value={duration} onChangeText={setDuration} />
 
-                                            {/* --- YENİ EKLENEN KISIM BAŞLANGIÇ --- */}
+                                            {/* --- EKLENEN KISIM: KREDİ KULLANIMI --- */}
+                                            {/* Sadece kredi varsa göster */}
+                                            {(balanceInfo?.credits || currentCredits) > 0 && (
+                                                <View style={[styles.switchContainer, { borderColor: useCredit ? COLORS.success : '#E5E7EB', borderWidth: useCredit ? 2 : 1 }]}>
+                                                    <View>
+                                                        <Text style={styles.label}>Paketten Düş</Text>
+                                                        <Text style={{ fontSize: 10, color: COLORS.textLight }}>
+                                                            {useCredit ? "Bu ders krediden düşülecek" : `Mevcut: ${currentCredits} kredi`}
+                                                        </Text>
+                                                    </View>
+                                                    <Switch
+                                                        value={useCredit}
+                                                        onValueChange={setUseCredit}
+                                                        trackColor={{ false: "#767577", true: COLORS.success }}
+                                                        thumbColor={useCredit ? "#fff" : "#f4f3f4"}
+                                                    />
+                                                </View>
+                                            )}
+                                            {/* -------------------------------------- */}
+
                                             <View style={styles.switchContainer}>
                                                 <Text style={styles.label}>Her Hafta Tekrarla?</Text>
                                                 <Switch
@@ -366,7 +492,6 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
                                                 </View>
                                             )}
 
-                                            {/* --- ÖDEV BÖLÜMÜ --- */}
                                             <View style={styles.switchContainer}>
                                                 <Text style={styles.label}>Ödev Verilecek mi?</Text>
                                                 <Switch
@@ -380,14 +505,13 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
                                             {hasHomework && (
                                                 <TextInput
                                                     style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
-                                                    placeholder="Ödev Açıklaması (Örn: Sayfa 10-15 çözülecek)"
+                                                    placeholder="Ödev Açıklaması"
                                                     multiline={true}
                                                     numberOfLines={3}
                                                     value={homeworkDesc}
                                                     onChangeText={setHomeworkDesc}
                                                 />
                                             )}
-                                            {/* --- YENİ EKLENEN KISIM BİTİŞ --- */}
 
                                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 }}>
                                                 <TouchableOpacity onPress={() => { setMode('date'); setShowPicker(true) }} style={styles.dateBtn}>
@@ -404,6 +528,9 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
                                     {showPaymentForm && (
                                         <TextInput style={styles.input} placeholder="Tutar (TL)" keyboardType="numeric" value={amount} onChangeText={setAmount} />
                                     )}
+
+                                    {/* --- PAKET SATIN ALMA FORMU (OVERLAY İÇİNDE GÖSTERİLMEYECEK, AYRI GÖSTERİLİYOR AMA KOD YAPISI AYNEN KALDI) --- */}
+                                    {/* Not: showPackageForm bu overlay içinde değil, aşağıda ayrı bir blokta. */}
 
                                     {showEditForm && (
                                         <>
@@ -435,6 +562,26 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
                                             <Text style={{ color: 'white' }}>
                                                 {showEditForm ? "Güncelle" : "Kaydet"}
                                             </Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            </View>
+                        )}
+
+                        {/* PAKET ALMA FORMU AYRI */}
+                        {showPackageForm && (
+                            <View style={styles.formOverlay}>
+                                <View style={styles.formCard}>
+                                    <Text style={styles.formTitle}>📦 Yeni Ders Paketi Tanımla</Text>
+                                    <TextInput style={styles.input} placeholder="Ders Adedi (Örn: 10)" keyboardType="numeric" value={packageCredits} onChangeText={setPackageCredits} />
+                                    <TextInput style={styles.input} placeholder="Toplam Fiyat (Örn: 5000)" keyboardType="numeric" value={packagePrice} onChangeText={setPackagePrice} />
+
+                                    <View style={{ flexDirection: 'row', marginTop: 10 }}>
+                                        <TouchableOpacity onPress={() => setShowPackageForm(false)} style={[styles.btn, { backgroundColor: '#EEE' }]}>
+                                            <Text>İptal</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity style={[styles.btn, { backgroundColor: '#EC4899' }]} onPress={handleBuyPackage}>
+                                            <Text style={{ color: 'white', fontWeight: 'bold' }}>Paketi Yükle</Text>
                                         </TouchableOpacity>
                                     </View>
                                 </View>
@@ -506,7 +653,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center'
     },
-    // ... diğer stiller ...
     switchContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -518,4 +664,20 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#E5E7EB'
     },
+    saveBtn: {
+        backgroundColor: COLORS.primary,
+        padding: 15,
+        borderRadius: 12,
+        alignItems: 'center',
+        marginTop: 10,
+        shadowColor: COLORS.primary,
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+        elevation: 3
+    },
+    saveBtnText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 16
+    }
 });

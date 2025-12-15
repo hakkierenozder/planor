@@ -52,6 +52,9 @@ namespace DersTakip.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsPaidByCredit")
+                        .HasColumnType("boolean");
+
                     b.Property<decimal>("PriceSnapshot")
                         .HasColumnType("decimal(18,2)");
 
@@ -128,6 +131,9 @@ namespace DersTakip.Infrastructure.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("Credits")
+                        .HasColumnType("integer");
 
                     b.Property<string>("FullName")
                         .IsRequired()

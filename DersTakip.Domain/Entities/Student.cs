@@ -21,6 +21,8 @@ namespace DersTakip.Domain.Entities
         public string? ColorCode { get; set; } // Örn: #FF5733
         public bool IsActive { get; set; } = true;
 
+        public int Credits { get; set; } = 0; // Kalan Ders Kredisi
+
         // Navigation Properties
         public ICollection<Lesson> Lessons { get; set; } = new List<Lesson>();
         public ICollection<Payment> Payments { get; set; } = new List<Payment>();

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DersTakip.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a0e5f64a322dc6056ba1e4784e71955a16b651f5")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+854015ffad5a5a926db0a730104de300f6800e49")]
 [assembly: System.Reflection.AssemblyProductAttribute("DersTakip.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DersTakip.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

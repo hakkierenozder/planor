@@ -19,5 +19,7 @@ namespace DersTakip.Application.DTOs.Lesson
 
         public bool HasHomework { get; set; }
         public string? HomeworkDescription { get; set; }
+
+        public bool UseCredit { get; set; } = false; // Krediden düşülsün mü?
     }
 }

@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const MY_IP_ADDRESS = '192.168.1.5'; // <-- Senin IP adresin buraya!
 const API_PORT = '5252'; 
 
-const API_URL = `http://${MY_IP_ADDRESS}:${API_PORT}/api`;
+export const API_URL = `http://${MY_IP_ADDRESS}:${API_PORT}/api`;
 
 const api = axios.create({
   baseURL: API_URL,
@@ -44,7 +44,11 @@ export const studentService = {
   create: async (data: any) => { const res = await api.post('/students', data); return res.data; },
   update: async (id: string, data: any) => { const res = await api.put(`/students/${id}`, { ...data, id }); return res.data; },
   getBalance: async (id: string) => { const res = await api.get(`/students/${id}/balance`); return res.data; },
-  getLessons: async (id: string) => { const res = await api.get(`/students/${id}/lessons`); return res.data; }
+  getLessons: async (id: string) => { const res = await api.get(`/students/${id}/lessons`); return res.data; },
+  addPackage: async (data: { studentId: string, creditAmount: number, totalPrice: number, packageName?: string }) => {
+    const res = await api.post('/students/add-package', data);
+    return res.data;
+  },
 };
 
 export const lessonService = {

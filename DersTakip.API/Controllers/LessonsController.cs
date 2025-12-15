@@ -25,38 +25,44 @@ public class LessonsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(CreateLessonRequest request)
     {
-        // 1. Öğretmen Kimliğini Al (Token'dan)
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
         var student = await _studentRepository.GetByIdAsync(request.StudentId);
         if (student == null) return NotFound("Öğrenci bulunamadı.");
 
-        // 2. Tekrarlayan veya Tek Ders Ayarları
         Guid? groupId = request.IsRecurring ? Guid.NewGuid() : null;
         int count = request.IsRecurring ? (request.RecurringCount ?? 4) : 1;
+
+        // --- 1. KREDİ KONTROLÜ (YENİDEN EKLENDİ) ---
+        if (request.UseCredit)
+        {
+            if (student.Credits < count)
+            {
+                return BadRequest(new
+                {
+                    message = "Yetersiz Kredi! ⚠️",
+                    detail = $"İşlem için {count} kredi lazım ama öğrencinin {student.Credits} kredisi var."
+                });
+            }
+        }
+        // ------------------------------------------
+
         var lessonsToCreate = new List<Lesson>();
 
-        // 3. ÖNCE KONTROL ET (Simülasyon)
-        // Hiçbir dersi kaydetmeden önce, tüm tarihlerin boş olup olmadığına bakıyoruz.
         for (int i = 0; i < count; i++)
         {
             var lessonStart = request.StartTime.AddDays(i * 7);
             var lessonEnd = lessonStart.AddMinutes(request.DurationMinutes);
 
-            // Çakışma Var mı?
             bool hasConflict = await _lessonRepository.HasConflictAsync(userId, lessonStart, lessonEnd);
-
             if (hasConflict)
             {
-                // Çakışma varsa işlemi durdur ve hangi tarihte olduğunu söyle
                 return BadRequest(new
                 {
                     message = "Çakışma Tespit Edildi! 🛑",
-                    detail = $"{lessonStart.ToString("dd.MM.yyyy HH:mm")} tarihinde zaten bir dersiniz var."
+                    detail = $"{lessonStart:dd.MM.yyyy HH:mm} tarihinde zaten ders var."
                 });
             }
 
-            // Çakışma yoksa listeye ekle (Henüz veritabanına atma)
             lessonsToCreate.Add(new Lesson
             {
                 StudentId = request.StudentId,
@@ -68,14 +74,23 @@ public class LessonsController : ControllerBase
                 PriceSnapshot = student.HourlyRate,
                 RecurringGroupId = groupId,
                 HasHomework = request.HasHomework,
-                HomeworkDescription = request.HomeworkDescription
+                HomeworkDescription = request.HomeworkDescription,
+
+                // --- 2. KREDİ BİLGİSİNİ İŞLE ---
+                IsPaidByCredit = request.UseCredit
             });
         }
 
-        // 4. HEPSİ TEMİZSE KAYDET
         foreach (var lesson in lessonsToCreate)
         {
             await _lessonRepository.CreateAsync(lesson);
+        }
+
+        // --- 3. KREDİYİ DÜŞ VE KAYDET ---
+        if (request.UseCredit)
+        {
+            student.Credits -= count;
+            await _studentRepository.UpdateAsync(student);
         }
 
         return Ok(lessonsToCreate.FirstOrDefault());
