@@ -25,48 +25,60 @@ public class LessonsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(CreateLessonRequest request)
     {
+        // 1. Öğretmen Kimliğini Al (Token'dan)
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
         var student = await _studentRepository.GetByIdAsync(request.StudentId);
         if (student == null) return NotFound("Öğrenci bulunamadı.");
 
-        // Eğer tekrar edecekse bir Grup ID oluştur, yoksa null olsun.
+        // 2. Tekrarlayan veya Tek Ders Ayarları
         Guid? groupId = request.IsRecurring ? Guid.NewGuid() : null;
-
-        // Eğer tekrar sayısı girilmediyse ama tekrar seçildiyse varsayılan 4 hafta yapalım.
         int count = request.IsRecurring ? (request.RecurringCount ?? 4) : 1;
+        var lessonsToCreate = new List<Lesson>();
 
-        // Oluşturulan dersleri tutacağımız liste (Dönüş değeri için)
-        var createdLessons = new List<Lesson>();
-
+        // 3. ÖNCE KONTROL ET (Simülasyon)
+        // Hiçbir dersi kaydetmeden önce, tüm tarihlerin boş olup olmadığına bakıyoruz.
         for (int i = 0; i < count; i++)
         {
-            // Her döngüde tarihi 7 gün (bir hafta) ileri atıyoruz.
-            // i=0 iken: StartTime + 0 gün
-            // i=1 iken: StartTime + 7 gün ...
-            var lessonDate = request.StartTime.AddDays(i * 7);
+            var lessonStart = request.StartTime.AddDays(i * 7);
+            var lessonEnd = lessonStart.AddMinutes(request.DurationMinutes);
 
-            var lesson = new Lesson
+            // Çakışma Var mı?
+            bool hasConflict = await _lessonRepository.HasConflictAsync(userId, lessonStart, lessonEnd);
+
+            if (hasConflict)
+            {
+                // Çakışma varsa işlemi durdur ve hangi tarihte olduğunu söyle
+                return BadRequest(new
+                {
+                    message = "Çakışma Tespit Edildi! 🛑",
+                    detail = $"{lessonStart.ToString("dd.MM.yyyy HH:mm")} tarihinde zaten bir dersiniz var."
+                });
+            }
+
+            // Çakışma yoksa listeye ekle (Henüz veritabanına atma)
+            lessonsToCreate.Add(new Lesson
             {
                 StudentId = request.StudentId,
-                StartTime = lessonDate, // <--- Hesaplanmış yeni tarih
+                StartTime = lessonStart,
                 DurationMinutes = request.DurationMinutes,
                 Topic = request.Topic,
                 InternalNotes = request.InternalNotes,
                 Status = LessonStatus.Scheduled,
                 PriceSnapshot = student.HourlyRate,
-                RecurringGroupId = groupId, // <--- Grup ID'yi basıyoruz,
+                RecurringGroupId = groupId,
                 HasHomework = request.HasHomework,
                 HomeworkDescription = request.HomeworkDescription
-            };
-
-            // Veritabanına kaydet
-            // Not: Performans için ilerde 'CreateRangeAsync' yazabilirsin ama şimdilik döngü yeterli.
-            var created = await _lessonRepository.CreateAsync(lesson);
-            createdLessons.Add(created);
+            });
         }
 
-        // İlk oluşturulan dersi veya hepsini dönebilirsin.
-        // Frontend genelde tek bir onay beklediği için ilkini dönmek yeterlidir ama liste de dönebilirsin.
-        return Ok(createdLessons.FirstOrDefault());
+        // 4. HEPSİ TEMİZSE KAYDET
+        foreach (var lesson in lessonsToCreate)
+        {
+            await _lessonRepository.CreateAsync(lesson);
+        }
+
+        return Ok(lessonsToCreate.FirstOrDefault());
     }
 
     [HttpGet("student/{studentId}")]

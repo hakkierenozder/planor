@@ -91,7 +91,7 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
         } catch (e) { Alert.alert("Hata", "İşlem başarısız"); }
     };
 
-const handleAddLesson = async () => {
+    const handleAddLesson = async () => {
         if (!duration) return;
         const tzOffset = date.getTimezoneOffset() * 60000; // Dakika farkını milisaniyeye çevir
         const localISOTime = new Date(date.getTime() - tzOffset).toISOString().slice(0, -1);
@@ -103,26 +103,36 @@ const handleAddLesson = async () => {
                 topic: topic || "Genel Tekrar",
                 internalNotes: "",
                 // YENİ EKLENEN KISIMLAR:
-                isRecurring: isRecurring, 
+                isRecurring: isRecurring,
                 recurringCount: isRecurring ? parseInt(recurringCount) : 1,
                 hasHomework: hasHomework,
                 homeworkDescription: hasHomework ? homeworkDesc : ""
             });
-            
+
             // Formu temizle ve kapat
             setHasHomework(false);
             setHomeworkDesc('');
-            setShowLessonForm(false); 
-            setTopic(''); 
-            setDuration('60'); 
+            setShowLessonForm(false);
+            setTopic('');
+            setDuration('60');
             setIsRecurring(false); // Sıfırla
             setRecurringCount('4'); // Sıfırla
             fetchDetails();
-            
+
             Alert.alert("Başarılı", isRecurring ? `${recurringCount} haftalık ders planlandı! 📅` : "Ders eklendi! ✅");
 
-        } catch (e) { 
-            Alert.alert("Hata", "İşlem başarısız"); 
+        } catch (error: any) {
+            // HATA YÖNETİMİ GÜNCELLEMESİ:
+            // Eğer sunucu bize özel bir mesaj gönderdiyse (örn: Çakışma var), onu gösterelim.
+            if (error.response && error.response.data) {
+                Alert.alert(
+                    error.response.data.message || "Hata",
+                    error.response.data.detail || "Sunucu hatası oluştu."
+                );
+            } else {
+                // Sunucuya hiç ulaşamazsa (internet yoksa vs.) bunu göster.
+                Alert.alert("Hata", "İşlem başarısız. İnternet bağlantınızı kontrol edin.");
+            }
         }
     };
 
@@ -242,13 +252,13 @@ const handleAddLesson = async () => {
                                                 <Text style={styles.itemTitle}>{item.topic}</Text>
                                                 <Text style={styles.itemSub}>{item.durationMinutes} dk • {new Date(item.startTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</Text>
                                             </View>
-<TouchableOpacity 
-                                                style={[styles.iconBtn, {backgroundColor: '#E0F2F1', marginRight: 8}]}
+                                            <TouchableOpacity
+                                                style={[styles.iconBtn, { backgroundColor: '#E0F2F1', marginRight: 8 }]}
                                                 onPress={() => {
                                                     // Eğer ders tamamlanmışsa (Status=2 veya Completed) tamamlandı mesajı at
-                                                    if (item.status === 2 || item.status === "Completed") { 
+                                                    if (item.status === 2 || item.status === "Completed") {
                                                         const msg = whatsappService.templates.lessonCompleted(
-                                                            student.fullName, 
+                                                            student.fullName,
                                                             item.topic,
                                                             item.homeworkDescription // <--- Backend'den gelen veri
                                                         );
@@ -256,15 +266,15 @@ const handleAddLesson = async () => {
                                                     } else {
                                                         // Tamamlanmamışsa planlama mesajı at (Eski mantık)
                                                         const msg = whatsappService.templates.lessonCreated(
-                                                            student.fullName, 
-                                                            new Date(item.startTime), 
+                                                            student.fullName,
+                                                            new Date(item.startTime),
                                                             item.topic
                                                         );
                                                         whatsappService.send(student.phoneNumber, msg);
                                                     }
                                                 }}
                                             >
-                                                <Text style={{fontSize: 16}}>💬</Text>
+                                                <Text style={{ fontSize: 16 }}>💬</Text>
                                             </TouchableOpacity>
                                             {item.status === 1 && (
                                                 <TouchableOpacity onPress={() => handleComplete(item)} style={styles.checkBtn}><Text>✔</Text></TouchableOpacity>
@@ -327,16 +337,16 @@ const handleAddLesson = async () => {
                                         {showLessonForm ? "Ders Planla" : showPaymentForm ? "Ödeme Al" : "Bilgileri Düzenle"}
                                     </Text>
 
-{showLessonForm && (
+                                    {showLessonForm && (
                                         <>
                                             <TextInput style={styles.input} placeholder="Konu" value={topic} onChangeText={setTopic} />
                                             <TextInput style={styles.input} placeholder="Süre (dk)" keyboardType="numeric" value={duration} onChangeText={setDuration} />
-                                            
+
                                             {/* --- YENİ EKLENEN KISIM BAŞLANGIÇ --- */}
                                             <View style={styles.switchContainer}>
                                                 <Text style={styles.label}>Her Hafta Tekrarla?</Text>
-                                                <Switch 
-                                                    value={isRecurring} 
+                                                <Switch
+                                                    value={isRecurring}
                                                     onValueChange={setIsRecurring}
                                                     trackColor={{ false: "#767577", true: COLORS.primary }}
                                                     thumbColor={isRecurring ? "#fff" : "#f4f3f4"}
@@ -344,14 +354,14 @@ const handleAddLesson = async () => {
                                             </View>
 
                                             {isRecurring && (
-                                                <View style={{marginBottom: 10}}>
+                                                <View style={{ marginBottom: 10 }}>
                                                     <Text style={styles.label}>Kaç Hafta?</Text>
-                                                    <TextInput 
-                                                        style={styles.input} 
-                                                        placeholder="Örn: 4" 
-                                                        keyboardType="numeric" 
-                                                        value={recurringCount} 
-                                                        onChangeText={setRecurringCount} 
+                                                    <TextInput
+                                                        style={styles.input}
+                                                        placeholder="Örn: 4"
+                                                        keyboardType="numeric"
+                                                        value={recurringCount}
+                                                        onChangeText={setRecurringCount}
                                                     />
                                                 </View>
                                             )}
@@ -359,8 +369,8 @@ const handleAddLesson = async () => {
                                             {/* --- ÖDEV BÖLÜMÜ --- */}
                                             <View style={styles.switchContainer}>
                                                 <Text style={styles.label}>Ödev Verilecek mi?</Text>
-                                                <Switch 
-                                                    value={hasHomework} 
+                                                <Switch
+                                                    value={hasHomework}
                                                     onValueChange={setHasHomework}
                                                     trackColor={{ false: "#767577", true: COLORS.primary }}
                                                     thumbColor={hasHomework ? "#fff" : "#f4f3f4"}
@@ -368,13 +378,13 @@ const handleAddLesson = async () => {
                                             </View>
 
                                             {hasHomework && (
-                                                <TextInput 
-                                                    style={[styles.input, {height: 80, textAlignVertical: 'top'}]} 
-                                                    placeholder="Ödev Açıklaması (Örn: Sayfa 10-15 çözülecek)" 
+                                                <TextInput
+                                                    style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                                                    placeholder="Ödev Açıklaması (Örn: Sayfa 10-15 çözülecek)"
                                                     multiline={true}
                                                     numberOfLines={3}
-                                                    value={homeworkDesc} 
-                                                    onChangeText={setHomeworkDesc} 
+                                                    value={homeworkDesc}
+                                                    onChangeText={setHomeworkDesc}
                                                 />
                                             )}
                                             {/* --- YENİ EKLENEN KISIM BİTİŞ --- */}

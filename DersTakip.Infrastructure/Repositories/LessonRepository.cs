@@ -1,5 +1,6 @@
 ﻿using DersTakip.Application.Interfaces;
 using DersTakip.Domain.Entities;
+using DersTakip.Domain.Enums;
 using DersTakip.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -66,5 +67,19 @@ public class LessonRepository : ILessonRepository
             .Where(l => l.Student.UserId == userId && !l.IsDeleted)
             .OrderBy(l => l.StartTime)
             .ToListAsync();
+    }
+
+    public async Task<bool> HasConflictAsync(string userId, DateTime startTime, DateTime endTime, Guid? excludeLessonId = null)
+    {
+        // Çakışma Mantığı: (MevcutBaşlangıç < YeniBitiş) VE (MevcutBitiş > YeniBaşlangıç)
+        return await _context.Lessons
+            .Include(l => l.Student) // Öğrenci üzerinden öğretmene (UserId) ulaşıyoruz
+            .AnyAsync(l =>
+                l.Student.UserId == userId &&
+                l.Status != LessonStatus.Cancelled && // İptal edilen dersler çakışma yaratmaz
+                (excludeLessonId == null || l.Id != excludeLessonId) && // Güncelleme yaparken kendisiyle çakışmasın
+                l.StartTime < endTime &&
+                (l.StartTime.AddMinutes(l.DurationMinutes)) > startTime
+            );
     }
 }

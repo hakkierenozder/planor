@@ -87,4 +87,6 @@ public class StudentsController : ControllerBase
         await _studentRepository.UpdateAsync(existingStudent);
         return Ok(new { message = "Öğrenci güncellendi." });
     }
+
+
 }

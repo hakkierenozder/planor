@@ -19,5 +19,7 @@ namespace DersTakip.Application.Interfaces
         Task DeleteAsync(Lesson lesson);
 
         Task<List<Lesson>> GetAllByUserIdAsync(string userId);
+
+        Task<bool> HasConflictAsync(string userId, DateTime startTime, DateTime endTime, Guid? excludeLessonId = null);
     }
 }

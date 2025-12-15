@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "LV8dbHdyXTk=",
+  "dgSpecHash": "LG06VFW/4A8=",
   "success": true,
   "projectFilePath": "C:\\Users\\hakki\\OneDrive\\Masaüstü\\DersTakip\\DersTakip\\DersTakip.API\\DersTakip.API.csproj",
   "expectedPackageFiles": [
@@ -38,6 +38,7 @@
     "C:\\Users\\hakki\\.nuget\\packages\\mono.texttemplating\\2.2.1\\mono.texttemplating.2.2.1.nupkg.sha512",
     "C:\\Users\\hakki\\.nuget\\packages\\npgsql\\7.0.0\\npgsql.7.0.0.nupkg.sha512",
     "C:\\Users\\hakki\\.nuget\\packages\\npgsql.entityframeworkcore.postgresql\\7.0.0\\npgsql.entityframeworkcore.postgresql.7.0.0.nupkg.sha512",
+    "C:\\Users\\hakki\\.nuget\\packages\\questpdf\\2025.12.0\\questpdf.2025.12.0.nupkg.sha512",
     "C:\\Users\\hakki\\.nuget\\packages\\swashbuckle.aspnetcore\\6.5.0\\swashbuckle.aspnetcore.6.5.0.nupkg.sha512",
     "C:\\Users\\hakki\\.nuget\\packages\\swashbuckle.aspnetcore.swagger\\6.5.0\\swashbuckle.aspnetcore.swagger.6.5.0.nupkg.sha512",
     "C:\\Users\\hakki\\.nuget\\packages\\swashbuckle.aspnetcore.swaggergen\\6.5.0\\swashbuckle.aspnetcore.swaggergen.6.5.0.nupkg.sha512",
