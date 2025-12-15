@@ -1,0 +1,11 @@
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Domain\bin\Debug\net7.0\DersTakip.Domain.deps.json
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Domain\bin\Debug\net7.0\DersTakip.Domain.dll
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Domain\bin\Debug\net7.0\DersTakip.Domain.pdb
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Domain\obj\Debug\net7.0\DersTakip.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Domain\obj\Debug\net7.0\DersTakip.Domain.AssemblyInfoInputs.cache
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Domain\obj\Debug\net7.0\DersTakip.Domain.AssemblyInfo.cs
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Domain\obj\Debug\net7.0\DersTakip.Domain.csproj.CoreCompileInputs.cache
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Domain\obj\Debug\net7.0\DersTakip.Domain.dll
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Domain\obj\Debug\net7.0\refint\DersTakip.Domain.dll
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Domain\obj\Debug\net7.0\DersTakip.Domain.pdb
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Domain\obj\Debug\net7.0\ref\DersTakip.Domain.dll

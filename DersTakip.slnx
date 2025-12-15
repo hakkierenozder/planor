@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="DersTakip.API/DersTakip.API.csproj" />
+  <Project Path="DersTakip.Application/DersTakip.Application.csproj" />
+  <Project Path="DersTakip.Domain/DersTakip.Domain.csproj" />
+  <Project Path="DersTakip.Infrastructure/DersTakip.Infrastructure.csproj" />
+</Solution>

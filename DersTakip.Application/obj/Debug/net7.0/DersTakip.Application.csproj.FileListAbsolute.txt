@@ -1,0 +1,15 @@
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Application\bin\Debug\net7.0\DersTakip.Application.deps.json
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Application\bin\Debug\net7.0\DersTakip.Application.dll
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Application\bin\Debug\net7.0\DersTakip.Application.pdb
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Application\bin\Debug\net7.0\DersTakip.Domain.dll
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Application\bin\Debug\net7.0\DersTakip.Domain.pdb
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Application\obj\Debug\net7.0\DersTakip.Application.csproj.AssemblyReference.cache
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Application\obj\Debug\net7.0\DersTakip.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Application\obj\Debug\net7.0\DersTakip.Application.AssemblyInfoInputs.cache
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Application\obj\Debug\net7.0\DersTakip.Application.AssemblyInfo.cs
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Application\obj\Debug\net7.0\DersTakip.Application.csproj.CoreCompileInputs.cache
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Application\obj\Debug\net7.0\DersTaki.7A6E0812.Up2Date
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Application\obj\Debug\net7.0\DersTakip.Application.dll
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Application\obj\Debug\net7.0\refint\DersTakip.Application.dll
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Application\obj\Debug\net7.0\DersTakip.Application.pdb
+C:\Users\hakki\OneDrive\Masaüstü\DersTakip\DersTakip\DersTakip.Application\obj\Debug\net7.0\ref\DersTakip.Application.dll
