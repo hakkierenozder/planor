@@ -25,11 +25,10 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
-  const [dashboardData, setDashboardData] = useState({ 
-    totalReceivable: 0, 
-    todaysLessonCount: 0, 
-    totalStudents: 0 
-  });
+  
+  // --- GÜNCELLEME 1: Başlangıç state'ini null yaptık ---
+  const [dashboardData, setDashboardData] = useState<any>(null);
+  
   const [activeTab, setActiveTab] = useState<'home' | 'calendar' | 'reports'>('home');
 
   const [name, setName] = useState('');
@@ -108,9 +107,11 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
             >
               <View style={styles.summaryTopRow}>
                 <View>
-                  <Text style={styles.summaryLabel}>Toplam Alacak</Text>
+                  {/* --- GÜNCELLEME 2: İsim ve Değişken Güncellendi --- */}
+                  <Text style={styles.summaryLabel}>Bu Ay Kazanılan</Text>
                   <Text style={styles.summaryValue}>
-                    ₺{dashboardData.totalReceivable.toFixed(2)}
+                    {/* monthlyRevenue kontrolü */}
+                    ₺{(dashboardData?.monthlyRevenue || 0).toFixed(0)}
                   </Text>
                 </View>
                 <View style={styles.iconCircle}>
@@ -121,14 +122,16 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
               <View style={styles.statsRow}>
                 <View style={styles.statItem}>
                   <Text style={styles.statNumber}>
-                    {dashboardData.todaysLessonCount}
+                    {/* todayLessonCount kontrolü */}
+                    {dashboardData?.todayLessonCount || 0}
                   </Text>
                   <Text style={styles.statLabel}>Bugünkü Ders</Text>
                 </View>
                 <View style={styles.verticalLine} />
                 <View style={styles.statItem}>
                   <Text style={styles.statNumber}>
-                    {dashboardData.totalStudents}
+                    {/* totalStudentCount kontrolü */}
+                    {dashboardData?.totalStudentCount || 0}
                   </Text>
                   <Text style={styles.statLabel}>Öğrenci</Text>
                 </View>

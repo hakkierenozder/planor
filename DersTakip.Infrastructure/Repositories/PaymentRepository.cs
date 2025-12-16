@@ -39,4 +39,15 @@ public class PaymentRepository : IPaymentRepository
     {
         return await _context.Payments.FindAsync(id);
     }
+
+    public async Task<List<Payment>> GetAllByUserIdAsync(string userId)
+    {
+        // Ödemeleri getirirken Öğrenci tablosuna (Include) bağlanıyoruz.
+        // Şart: Öğrencinin hocası (UserId) bizim gönderdiğimiz userId olmalı.
+        return await _context.Payments
+            .Include(p => p.Student)
+            .Where(p => p.Student.UserId == userId && !p.IsDeleted)
+            .OrderByDescending(p => p.PaymentDate)
+            .ToListAsync();
+    }
 }

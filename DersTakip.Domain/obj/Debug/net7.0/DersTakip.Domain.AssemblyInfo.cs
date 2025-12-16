@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DersTakip.Domain")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+bdc72d0c97763c7f02b33f636fda682a82bb651a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+74ce7155c532c85768b87a1e16b97cf6bccea16b")]
 [assembly: System.Reflection.AssemblyProductAttribute("DersTakip.Domain")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DersTakip.Domain")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

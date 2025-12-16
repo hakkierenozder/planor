@@ -1,88 +1,68 @@
-﻿using DersTakip.Infrastructure.Persistence;
+﻿using DersTakip.Application.DTOs.Dashboard;
+using DersTakip.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-// Projenin namespace'lerini eklemeyi unutma (Models, Data vb.)
+using System.Security.Claims;
 
-[Route("api/[controller]")]
-[ApiController]
-public class DashboardController : ControllerBase
+namespace DersTakip.API.Controllers
 {
-    private readonly AppDbContext _context; // Context ismin neyse onu kullan
-
-    public DashboardController(AppDbContext context)
+    [Authorize]
+    [ApiController]
+    [Route("api/[controller]")]
+    public class DashBoardController : ControllerBase
     {
-        _context = context;
-    }
+        private readonly IStudentRepository _studentRepository;
+        private readonly ILessonRepository _lessonRepository;
+        private readonly IPaymentRepository _paymentRepository;
 
-    [HttpGet("summary")]
-    public async Task<IActionResult> GetSummary()
-    {
-        // 1. Toplam Alacak (Tüm öğrencilerin bakiyesi)
-        // Mantık: (Toplam Ders Ücretleri) - (Toplam Ödemeler)
-
-        // Önce tüm derslerin toplam tutarı (Sadece iptal olmayanlar)
-        var totalLessonPrice = await _context.Lessons
-            .Where(l => !l.IsDeleted)
-            .SumAsync(l => l.PriceSnapshot > 0 ? l.PriceSnapshot : 0);
-        // Not: PriceSnapshot 0 ise, o anki HourlyRate ile hesaplanması gerekebilir ama şimdilik basit tutalım.
-
-        // Tüm ödemelerin toplamı
-        var totalPayments = await _context.Payments.SumAsync(p => p.Amount);
-
-        var totalReceivable = totalLessonPrice - totalPayments;
-
-        // 2. Bugünkü Ders Sayısı
-        var today = DateTime.Today;
-        var tomorrow = today.AddDays(1);
-
-        var todaysLessonCount = await _context.Lessons
-            .Where(l => l.StartTime >= today && l.StartTime < tomorrow && !l.IsDeleted)
-            .CountAsync();
-
-        // 3. Sonuç Döndür
-        return Ok(new
+        public DashBoardController(IStudentRepository studentRepository, ILessonRepository lessonRepository, IPaymentRepository paymentRepository)
         {
-            TotalReceivable = totalReceivable,
-            TodaysLessonCount = todaysLessonCount,
-            TotalStudents = await _context.Students.CountAsync()
-        });
-    }
+            _studentRepository = studentRepository;
+            _lessonRepository = lessonRepository;
+            _paymentRepository = paymentRepository;
+        }
 
-    // GET /api/dashboard/reports
-    [HttpGet("reports")]
-    public async Task<IActionResult> GetReports()
-    {
-        // 6 Ay Öncesine Git
-        var sixMonthsAgo = DateTime.UtcNow.AddMonths(-6);
+        [HttpGet("summary")]
+        public async Task<IActionResult> GetSummary()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        // --- 1. GELİR GRAFİĞİ VERİSİ (Çizgi Grafik) ---
-        // Son 6 ayın ödemelerini çekelim
-        var payments = await _context.Payments
-            .Where(p => p.PaymentDate >= sixMonthsAgo && !p.IsDeleted)
-            .ToListAsync();
+            // 1. Öğrencileri Çek
+            var students = await _studentRepository.GetAllByUserIdAsync(userId);
+            var activeStudents = students.Where(s => s.IsActive).ToList();
 
-        // C# tarafında aylara göre gruplayalım (Veritabanı bağımsız olsun diye)
-        var incomeData = payments
-            .GroupBy(p => new { p.PaymentDate.Year, p.PaymentDate.Month })
-            .Select(g => new
+            // 2. Dersleri Çek (Bugün İçin)
+            var allLessons = await _lessonRepository.GetAllByUserIdAsync(userId);
+            var today = DateTime.Today;
+            var todaysLessons = allLessons
+                .Where(l => l.StartTime.Date == today && l.Status != Domain.Enums.LessonStatus.Cancelled)
+                .OrderBy(l => l.StartTime)
+                .ToList();
+
+            // 3. Sıradaki Dersi Bul
+            var nextLesson = todaysLessons.FirstOrDefault(l => l.StartTime > DateTime.Now);
+
+            // 4. Bu Ayki Ödemeleri Çek (Ciro)
+            // Not: Repository'de tarih bazlı filtre yoksa hepsini çekip burada filtreleriz (küçük veri için sorun olmaz)
+            var allPayments = await _paymentRepository.GetAllByUserIdAsync(userId);
+            var monthlyRevenue = allPayments
+                .Where(p => p.PaymentDate.Month == today.Month && p.PaymentDate.Year == today.Year)
+                .Sum(p => p.Amount);
+
+            // 5. Kredisi Azalanlar (2 ve altı)
+            var lowCredits = activeStudents.Count(s => s.Credits <= 2);
+
+            var summary = new DashboardSummaryDto
             {
-                Month = new DateTime(g.Key.Year, g.Key.Month, 1).ToString("MMM", new System.Globalization.CultureInfo("tr-TR")), // "Oca", "Şub"
-                Total = g.Sum(p => p.Amount)
-            })
-            .ToList();
+                MonthlyRevenue = monthlyRevenue,
+                TotalStudentCount = activeStudents.Count,
+                LowCreditCount = lowCredits,
+                TodayLessonCount = todaysLessons.Count,
+                NextLessonInfo = nextLesson != null ? $"{nextLesson.Student.FullName}" : "Ders Yok",
+                NextLessonTime = nextLesson?.StartTime.ToString("HH:mm")
+            };
 
-        // --- 2. DERS DURUMU (Pasta Grafik) ---
-        var lessons = await _context.Lessons
-            .Where(l => !l.IsDeleted)
-            .ToListAsync();
-
-        var lessonStats = new
-        {
-            Completed = lessons.Count(l => l.Status == DersTakip.Domain.Enums.LessonStatus.Completed),
-            Cancelled = lessons.Count(l => l.Status == DersTakip.Domain.Enums.LessonStatus.Cancelled),
-            Scheduled = lessons.Count(l => l.Status == DersTakip.Domain.Enums.LessonStatus.Scheduled)
-        };
-
-        return Ok(new { Income = incomeData, Lessons = lessonStats });
+            return Ok(summary);
+        }
     }
 }

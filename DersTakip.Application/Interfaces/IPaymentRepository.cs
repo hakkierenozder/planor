@@ -11,4 +11,6 @@ public interface IPaymentRepository
 
     Task DeleteAsync(Payment payment);
     Task<Payment> GetByIdAsync(Guid id); // Eğer yoksa bunu da ekle
+    // Hocanın tüm öğrencilerinden aldığı ödemeleri getirir
+    Task<List<Payment>> GetAllByUserIdAsync(string userId);
 }
