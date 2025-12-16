@@ -78,7 +78,16 @@ export const paymentService = {
 
 export const dashboardService = {
   getSummary: async () => { const res = await api.get('/dashboard/summary'); return res.data; },
-  getReports: async () => { const res = await api.get('/dashboard/reports'); return res.data; }
+  getReports: async () => { const res = await api.get('/dashboard/reports'); return res.data; },
+  getMonthlyEarnings: async () => { const res = await api.get('/dashboard/monthly-earnings'); return res.data; },
+  getTopStudent: async () => { 
+    try {
+        const res = await api.get('/dashboard/top-student'); 
+        return res.status === 204 ? null : res.data; // 204 dönerse null ver
+    } catch (e) {
+        return null;
+    }
+  }
 };
 
 export const settingsService = {
@@ -138,5 +147,6 @@ export const reportService = {
         }
     }
 };
+
 
 export default api;

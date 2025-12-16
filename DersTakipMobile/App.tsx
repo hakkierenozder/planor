@@ -2,7 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   StyleSheet, Text, View, FlatList, ActivityIndicator,
-  TouchableOpacity, Modal, TextInput, Alert, SafeAreaView,KeyboardAvoidingView, ScrollView,Platform
+  TouchableOpacity, Modal, TextInput, Alert, SafeAreaView, KeyboardAvoidingView, ScrollView, Platform
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { studentService, dashboardService, authService } from './src/services/api';
@@ -13,6 +13,7 @@ import ReportsScreen from './src/screens/ReportsScreen';
 import { LinearGradient } from 'expo-linear-gradient';
 import SettingsScreen from './src/screens/SettingsScreen';
 import { notificationService } from './src/services/notification';
+import DashboardWidgets from './src/components/DashboardWidgets';
 
 const COLORS = {
   primary: '#6366F1',
@@ -37,15 +38,22 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
   const [phone, setPhone] = useState('');
   const [rate, setRate] = useState('');
 
+  const [topStudent, setTopStudent] = useState<any>(null);
+
   const fetchAllData = useCallback(async () => {
     setLoading(true);
     try {
-      const [studentsRes, dashboardRes] = await Promise.all([
+      // Promise.all içine yeni servisleri de ekle
+      const [studentsRes, dashboardRes, topStudentRes] = await Promise.all([
         studentService.getAll(),
-        dashboardService.getSummary()
+        dashboardService.getSummary(),
+        dashboardService.getTopStudent()
       ]);
+
       setStudents(studentsRes);
       setDashboardData(dashboardRes);
+      setTopStudent(topStudentRes); // Null gelebilir, sorun değil
+
     } catch (err) {
       console.error('Fetch error:', err);
     } finally {
@@ -136,7 +144,12 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
                 </View>
               </View>
             </LinearGradient>
-
+            {/* --- BURAYA EKLE --- */}
+            <DashboardWidgets
+              topStudent={topStudent}
+              loading={loading}
+            />
+            {/* ------------------- */}
             <Text style={styles.sectionTitle}>Öğrenci Listesi</Text>
           </View>
         }
@@ -188,7 +201,7 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
 
-<View style={styles.contentContainer}>
+      <View style={styles.contentContainer}>
         {activeTab === 'home' ? (
           loading ? (
             <View style={styles.centerLoading}>
@@ -243,8 +256,8 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          onPress={() => setActiveTab('settings')} 
+        <TouchableOpacity
+          onPress={() => setActiveTab('settings')}
           style={styles.tabItem}
         >
           <Text style={{ fontSize: 24, color: activeTab === 'settings' ? COLORS.primary : '#9CA3AF' }}>
@@ -326,11 +339,11 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-useEffect(() => {
+  useEffect(() => {
     const checkToken = async () => {
       try {
         // Bildirim İzni İste
-        await notificationService.registerForPushNotificationsAsync(); 
+        await notificationService.registerForPushNotificationsAsync();
 
         const token = await AsyncStorage.getItem('userToken');
         if (token) {
