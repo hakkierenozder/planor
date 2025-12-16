@@ -37,7 +37,7 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 .AddEntityFrameworkStores<AppDbContext>()
 .AddDefaultTokenProviders();
 
-var secretKey = builder.Configuration.GetValue<string>("JwtSettings:SecretKey");
+var secretKey = builder.Configuration.GetValue<string>("Jwt:Key");
 var key = Encoding.ASCII.GetBytes(secretKey);
 builder.Services.AddAuthentication(options =>
 {
@@ -58,6 +58,7 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
 builder.Services.AddScoped<ILessonRepository, LessonRepository>();
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<ITeacherSettingsRepository, TeacherSettingsRepository>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>

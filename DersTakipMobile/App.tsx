@@ -11,6 +11,7 @@ import AuthScreen from './src/screens/AuthScreen';
 import CalendarScreenImported from './src/screens/CalendarScreen';
 import ReportsScreen from './src/screens/ReportsScreen';
 import { LinearGradient } from 'expo-linear-gradient';
+import SettingsScreen from './src/screens/SettingsScreen';
 
 const COLORS = {
   primary: '#6366F1',
@@ -29,7 +30,7 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
   // --- GÜNCELLEME 1: Başlangıç state'ini null yaptık ---
   const [dashboardData, setDashboardData] = useState<any>(null);
 
-  const [activeTab, setActiveTab] = useState<'home' | 'calendar' | 'reports'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'calendar' | 'reports' | 'settings'>('home');
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -94,9 +95,6 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
                 <Text style={styles.welcomeText}>Hoş Geldiniz,</Text>
                 <Text style={styles.greetingText}>Planör 👋</Text>
               </View>
-              <TouchableOpacity onPress={onLogout} style={styles.logoutButton}>
-                <Text style={styles.logoutIcon}>🚪</Text>
-              </TouchableOpacity>
             </View>
 
             <LinearGradient
@@ -189,7 +187,7 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
 
-      <View style={styles.contentContainer}>
+<View style={styles.contentContainer}>
         {activeTab === 'home' ? (
           loading ? (
             <View style={styles.centerLoading}>
@@ -200,8 +198,10 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
           )
         ) : activeTab === 'calendar' ? (
           <CalendarScreenImported />
-        ) : (
+        ) : activeTab === 'reports' ? (
           <ReportsScreen />
+        ) : (
+          <SettingsScreen onLogout={onLogout} />
         )}
       </View>
 
@@ -239,6 +239,18 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
           </Text>
           <Text style={[styles.tabLabel, { color: activeTab === 'reports' ? COLORS.primary : '#9CA3AF' }]}>
             Raporlar
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          onPress={() => setActiveTab('settings')} 
+          style={styles.tabItem}
+        >
+          <Text style={{ fontSize: 24, color: activeTab === 'settings' ? COLORS.primary : '#9CA3AF' }}>
+            ⚙️
+          </Text>
+          <Text style={[styles.tabLabel, { color: activeTab === 'settings' ? COLORS.primary : '#9CA3AF' }]}>
+            Ayarlar
           </Text>
         </TouchableOpacity>
       </View>

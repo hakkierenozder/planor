@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  Alert, ActivityIndicator, KeyboardAvoidingView, Platform,ScrollView
+  Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView
 } from 'react-native';
 import { authService } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -23,8 +23,12 @@ interface AuthScreenProps {
 
 export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
   const [isLogin, setIsLogin] = useState(true);
+  
+  // Form State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState(''); // İsim State'i
+
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [mounted, setMounted] = useState(true);
@@ -36,47 +40,51 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
   }, []);
 
   const handleAuth = async () => {
+    // Temel kontrol
     if (!email || !password) {
       Alert.alert("Eksik Bilgi", "Lütfen e-posta ve şifrenizi girin.");
       return;
     }
 
+    // --- YENİ: İsim Kontrolü (Sadece Kayıt Olurken) ---
+    if (!isLogin && !fullName) {
+        Alert.alert("Eksik Bilgi", "Lütfen Ad Soyad giriniz.");
+        return;
+    }
+    // --------------------------------------------------
+
     setLoading(true);
     try {
       if (isLogin) {
-        console.log('Login attempt...');
+        // --- GİRİŞ YAP ---
         const data = await authService.login({ email, password });
         console.log('Login response:', data);
 
-        // Yanıt kontrolü
-        if (!data) {
-          throw new Error("Sunucudan yanıt alınamadı");
-        }
+        if (!data) throw new Error("Sunucudan yanıt alınamadı");
 
-        // Token kontrolü ve kaydetme
         const token = data.token || data.accessToken || data.access_token;
-        if (!token) {
-          console.error('Response data:', data);
-          throw new Error("Token bulunamadı");
-        }
+        if (!token) throw new Error("Token bulunamadı");
 
         await AsyncStorage.setItem('userToken', String(token));
 
-        // Email varsa kaydet
         const userEmail = data.email || data.user?.email || email;
         if (userEmail) {
           await AsyncStorage.setItem('userEmail', String(userEmail));
         }
 
-        console.log('Login successful, calling onLoginSuccess');
+        if (mounted) onLoginSuccess();
 
-        // Component hala mount edilmişse callback'i çağır
-        if (mounted) {
-          onLoginSuccess();
-        }
       } else {
+        // --- KAYIT OL ---
         console.log('Register attempt...');
-        const data = await authService.register({ email, password });
+        
+        // Backend'e isimi de gönderiyoruz
+        const data = await authService.register({ 
+            email, 
+            password, 
+            fullName // <--- YENİ
+        });
+        
         console.log('Register response:', data);
 
         if (mounted) {
@@ -93,21 +101,18 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
       if (!mounted) return;
 
       let errorMessage = "Bir sorun oluştu.";
-
       try {
         if (error?.response?.data) {
           const errorData = error.response.data;
-
           if (typeof errorData === 'string') {
             errorMessage = errorData;
           } else if (typeof errorData === 'object') {
-            errorMessage = errorData.message || errorData.error || errorData.msg || JSON.stringify(errorData);
+            errorMessage = errorData.message || errorData.error || JSON.stringify(errorData);
           }
         } else if (error?.message) {
           errorMessage = error.message;
         }
       } catch (parseError) {
-        console.error("Error parsing error message:", parseError);
         errorMessage = "Sunucuya bağlanılamadı";
       }
 
@@ -146,6 +151,23 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
             <Text style={styles.cardTitle}>
               {isLogin ? "Giriş Yap" : "Kayıt Ol"}
             </Text>
+
+            {/* --- YENİ INPUT: AD SOYAD (Sadece Kayıt Modunda) --- */}
+            {!isLogin && (
+                <>
+                    <Text style={styles.label}>Ad Soyad</Text>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Adınız Soyadınız"
+                        placeholderTextColor={COLORS.textLight}
+                        autoCapitalize="words"
+                        value={fullName}
+                        onChangeText={setFullName}
+                        editable={!loading}
+                    />
+                </>
+            )}
+            {/* -------------------------------------------------- */}
 
             <Text style={styles.label}>E-Posta</Text>
             <TextInput

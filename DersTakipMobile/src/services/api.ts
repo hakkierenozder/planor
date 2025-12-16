@@ -26,17 +26,25 @@ api.interceptors.request.use(async (config) => {
 
 // --- AUTH SERVİSLERİ ---
 export const authService = {
-  login: async (data: any) => {
-    const response = await api.post('/auth/login', data);
-    return response.data;
-  },
-  register: async (data: any) => {
-    const response = await api.post('/auth/register', data);
-    return response.data;
-  },
-  logout: async () => {
-    await AsyncStorage.removeItem('userToken');
-  }
+login: async (data: any) => {
+        const response = await api.post('/auth/login', data);
+        if (response.data.token) {
+            await AsyncStorage.setItem('userToken', response.data.token);
+        }
+        return response.data;
+    },
+    
+    // --- GÜNCELLENEN KISIM ---
+    register: async (data: any) => {
+        // data şunları içerecek: { email, password, fullName }
+        const response = await api.post('/auth/register', data);
+        return response.data;
+    },
+    // -------------------------
+
+    logout: async () => {
+        await AsyncStorage.removeItem('userToken');
+    }
 };
 
 export const studentService = {
@@ -70,6 +78,17 @@ export const paymentService = {
 export const dashboardService = {
   getSummary: async () => { const res = await api.get('/dashboard/summary'); return res.data; },
   getReports: async () => { const res = await api.get('/dashboard/reports'); return res.data; }
+};
+
+export const settingsService = {
+    get: async () => {
+        const response = await api.get('/settings');
+        return response.data;
+    },
+    save: async (data: any) => {
+        const response = await api.post('/settings', data);
+        return response.data;
+    }
 };
 
 export default api;

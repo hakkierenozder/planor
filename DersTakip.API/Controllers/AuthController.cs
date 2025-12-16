@@ -1,69 +1,102 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using DersTakip.Application.Interfaces;
+using DersTakip.Domain.Entities;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-[Route("api/[controller]")]
-[ApiController]
-public class AuthController : ControllerBase
+namespace DersTakip.API.Controllers
 {
-    private readonly UserManager<IdentityUser> _userManager;
-    private readonly SignInManager<IdentityUser> _signInManager;
-    private readonly IConfiguration _configuration; // <--- BU EKLENDİ
-
-    public AuthController(UserManager<IdentityUser> userManager, SignInManager<IdentityUser> signInManager, IConfiguration configuration)
+    [Route("api/[controller]")]
+    [ApiController]
+    public class AuthController : ControllerBase
     {
-        _userManager = userManager;
-        _signInManager = signInManager;
-        _configuration = configuration;
-    }
+        private readonly UserManager<IdentityUser> _userManager;
+        private readonly IConfiguration _configuration;
+        private readonly ITeacherSettingsRepository _settingsRepository; // <--- YENİ EKLENDİ
 
-    // KAYIT OL
-    [HttpPost("register")]
-    public async Task<IActionResult> Register([FromBody] RegisterDto model)
-    {
-        var user = new IdentityUser { UserName = model.Email, Email = model.Email };
-        var result = await _userManager.CreateAsync(user, model.Password);
-
-        if (result.Succeeded)
+        // Constructor'a settingsRepository eklendi
+        public AuthController(UserManager<IdentityUser> userManager, IConfiguration configuration, ITeacherSettingsRepository settingsRepository)
         {
-            return Ok(new { message = "Kayıt başarılı! Giriş yapabilirsiniz." });
+            _userManager = userManager;
+            _configuration = configuration;
+            _settingsRepository = settingsRepository;
         }
-        return BadRequest(result.Errors);
-    }
 
-    // GİRİŞ YAP
-    [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginDto model)
-    {
-        var user = await _userManager.FindByEmailAsync(model.Email);
-        if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
-            // Token Oluştur
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var secretKey = _configuration.GetValue<string>("JwtSettings:SecretKey"); // Program.cs ile AYNI olmalı
-            var key = Encoding.ASCII.GetBytes(secretKey);
+            var user = new IdentityUser { UserName = request.Email, Email = request.Email };
+            var result = await _userManager.CreateAsync(user, request.Password);
 
-            var tokenDescriptor = new SecurityTokenDescriptor
+            if (result.Succeeded)
             {
-                Subject = new ClaimsIdentity(new[]
+                // --- KRİTİK GÜNCELLEME BURASI ---
+                // Kullanıcı oluştuğu an Ayarlarını da oluşturuyoruz.
+                var settings = new TeacherSettings
                 {
-                    new Claim(ClaimTypes.NameIdentifier, user.Id), // Kullanıcı ID'sini token'a gömüyoruz
-                    new Claim(ClaimTypes.Name, user.Email)
-                }),
-                Expires = DateTime.UtcNow.AddDays(30),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            };
+                    UserId = user.Id,
+                    FullName = request.FullName, // Formdan gelen isim
+                    Title = "Öğretmen",          // Varsayılan Unvan
+                    DefaultHourlyRate = 0,
+                    DefaultLessonDuration = 60
+                };
 
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            return Ok(new { token = tokenHandler.WriteToken(token), email = user.Email });
+                await _settingsRepository.CreateAsync(settings);
+                // ---------------------------------
+
+                return Ok(new { message = "User registered successfully" });
+            }
+
+            return BadRequest(result.Errors);
         }
-        return Unauthorized("Hatalı email veya şifre.");
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginRequest request)
+        {
+            var user = await _userManager.FindByEmailAsync(request.Email);
+            if (user != null && await _userManager.CheckPasswordAsync(user, request.Password))
+            {
+                var authClaims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.Name, user.UserName!),
+                    new Claim(ClaimTypes.NameIdentifier, user.Id), // UserId Claim'i
+                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                };
+
+                var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
+
+                var token = new JwtSecurityToken(
+                    issuer: _configuration["Jwt:Issuer"],
+                    audience: _configuration["Jwt:Audience"],
+                    expires: DateTime.Now.AddDays(30), // Token ömrü 30 gün
+                    claims: authClaims,
+                    signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
+                );
+
+                return Ok(new
+                {
+                    token = new JwtSecurityTokenHandler().WriteToken(token),
+                    expiration = token.ValidTo
+                });
+            }
+            return Unauthorized();
+        }
+    }
+
+    // --- DTO CLASSES ---
+    public class RegisterRequest
+    {
+        public string Email { get; set; }
+        public string Password { get; set; }
+        public string FullName { get; set; } // <--- YENİ ALAN
+    }
+
+    public class LoginRequest
+    {
+        public string Email { get; set; }
+        public string Password { get; set; }
     }
 }
-
-// DTO Sınıfları (Aynı dosyanın altına koyabilirsin)
-public class LoginDto { public string Email { get; set; } public string Password { get; set; } }
-public class RegisterDto { public string Email { get; set; } public string Password { get; set; } }
