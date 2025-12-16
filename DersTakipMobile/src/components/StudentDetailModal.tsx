@@ -339,38 +339,59 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
                                     contentContainerStyle={{ paddingBottom: 100 }}
                                     ListEmptyComponent={<Text style={styles.emptyText}>Henüz kayıt yok.</Text>}
                                     renderItem={({ item }) => {
-                                        // Kontrol: Bu bir ders mi yoksa Paket Satışı mı?
-                                        // (Backend'de paket satarken süreyi 0 yapmıştık)
+                                        // 1. Bu bir Paket Satışı mı? (Süre 0 ise)
                                         const isPackageSale = item.durationMinutes === 0;
+                                        
+                                        // 2. Bu ders Krediden mi düştü? (Backend'den gelen veri)
+                                        // Not: Backend 'IsPaidByCredit' gönderiyor, JSON'da 'isPaidByCredit' olabilir.
+                                        const isCreditLesson = item.isPaidByCredit === true;
 
                                         return (
                                             <View style={styles.cardItem}>
-                                                {/* TARİH veya İKON KUTUSU */}
-                                                <View style={[styles.dateBadge, isPackageSale && { backgroundColor: '#FCE7F3' }]}> 
+                                                {/* --- TARİH KUTUSU --- */}
+                                                <View style={[
+                                                    styles.dateBadge, 
+                                                    isPackageSale && { backgroundColor: '#FCE7F3' }, // Paket Satışı (Pembe)
+                                                    (!isPackageSale && isCreditLesson) && { backgroundColor: '#FEF3C7' } // Paketten Düşen (Sarı/Turuncu)
+                                                ]}> 
                                                     {isPackageSale ? (
                                                         <Text style={{fontSize: 20}}>📦</Text> 
                                                     ) : (
                                                         <>
-                                                            <Text style={styles.dayText}>{new Date(item.startTime).getDate()}</Text>
-                                                            <Text style={styles.monthText}>{new Date(item.startTime).toLocaleDateString('tr-TR', { month: 'short' })}</Text>
+                                                            <Text style={[
+                                                                styles.dayText, 
+                                                                isCreditLesson && { color: '#D97706' } // Krediyse Rengi Turuncu yap
+                                                            ]}>
+                                                                {new Date(item.startTime).getDate()}
+                                                            </Text>
+                                                            <Text style={[
+                                                                styles.monthText,
+                                                                isCreditLesson && { color: '#D97706' }
+                                                            ]}>
+                                                                {new Date(item.startTime).toLocaleDateString('tr-TR', { month: 'short' })}
+                                                            </Text>
                                                         </>
                                                     )}
                                                 </View>
 
-                                                {/* ORTA KISIM (BAŞLIK & DETAY) */}
+                                                {/* --- ORTA KISIM (BAŞLIK & DETAY) --- */}
                                                 <View style={{ flex: 1, marginLeft: 15 }}>
                                                     <Text style={styles.itemTitle}>{item.topic}</Text>
+                                                    
+                                                    {/* Alt Metin Mantığı */}
                                                     <Text style={styles.itemSub}>
                                                         {isPackageSale 
                                                             ? "Paket Tanımlaması" 
-                                                            : `${item.durationMinutes} dk • ${new Date(item.startTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`
+                                                            : isCreditLesson
+                                                                ? `🎫 Paketten • ${item.durationMinutes} dk`
+                                                                : `${item.durationMinutes} dk • ${new Date(item.startTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`
                                                         }
                                                     </Text>
                                                 </View>
 
-                                                {/* BUTONLAR */}
+                                                {/* --- BUTONLAR --- */}
                                                 
-                                                {/* Mesaj Butonu (Sadece Gerçek Derslerde Göster) */}
+                                                {/* Mesaj Butonu (Sadece Gerçek Derslerde) */}
                                                 {!isPackageSale && (
                                                     <TouchableOpacity
                                                         style={[styles.iconBtn, { backgroundColor: '#E0F2F1', marginRight: 8 }]}
@@ -396,12 +417,12 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
                                                     </TouchableOpacity>
                                                 )}
 
-                                                {/* Tamamla Butonu (Sadece Planlanmış Derslerde Göster) */}
+                                                {/* Tamamla Butonu (Sadece Planlanmış Derslerde) */}
                                                 {item.status === 1 && (
                                                     <TouchableOpacity onPress={() => handleComplete(item)} style={styles.checkBtn}><Text>✔</Text></TouchableOpacity>
                                                 )}
 
-                                                {/* Sil Butonu (Hepsinde Göster) */}
+                                                {/* Sil Butonu */}
                                                 <TouchableOpacity onPress={() => handleDelete(item.id, 'lesson')} style={styles.delBtn}><Text>🗑</Text></TouchableOpacity>
                                             </View>
                                         );
