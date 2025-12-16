@@ -12,6 +12,7 @@ import CalendarScreenImported from './src/screens/CalendarScreen';
 import ReportsScreen from './src/screens/ReportsScreen';
 import { LinearGradient } from 'expo-linear-gradient';
 import SettingsScreen from './src/screens/SettingsScreen';
+import { notificationService } from './src/services/notification';
 
 const COLORS = {
   primary: '#6366F1',
@@ -325,9 +326,12 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
+useEffect(() => {
     const checkToken = async () => {
       try {
+        // Bildirim İzni İste
+        await notificationService.registerForPushNotificationsAsync(); 
+
         const token = await AsyncStorage.getItem('userToken');
         if (token) {
           setIsAuthenticated(true);

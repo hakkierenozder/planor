@@ -9,6 +9,7 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { studentService, lessonService, paymentService, API_URL } from '../services/api';
 import { whatsappService } from '../services/whatsapp';
+import { notificationService } from '../services/notification';
 
 const COLORS = {
     primary: '#6366F1',
@@ -156,11 +157,15 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
         }
     };
 
-    const handleAddLesson = async () => {
+const handleAddLesson = async () => {
         if (!duration) return;
+        
+        // Zaman dilimi ayarı (Backend için)
         const tzOffset = date.getTimezoneOffset() * 60000;
         const localISOTime = new Date(date.getTime() - tzOffset).toISOString().slice(0, -1);
+
         try {
+            // 1. Backend'e Kaydet
             await lessonService.create({
                 studentId: student.id,
                 startTime: localISOTime,
@@ -171,9 +176,30 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
                 recurringCount: isRecurring ? parseInt(recurringCount) : 1,
                 hasHomework: hasHomework,
                 homeworkDescription: hasHomework ? homeworkDesc : "",
-                // --- GÜNCELLENEN KISIM: Kredi bilgisini gönder ---
                 useCredit: useCredit
             });
+
+            // -----------------------------------------------------------
+            // 2. BİLDİRİM KURMA (YENİ EKLENEN KISIM) 🔔
+            // -----------------------------------------------------------
+            
+            // İlk ders için bildirim kur
+            await notificationService.scheduleLessonReminder(student.fullName, date);
+
+            // Eğer ders tekrarlıysa (Örn: 4 hafta), gelecek haftalar için de kur
+            if (isRecurring && parseInt(recurringCount) > 1) {
+                const count = parseInt(recurringCount);
+                for (let i = 1; i < count; i++) {
+                    const nextLessonDate = new Date(date);
+                    nextLessonDate.setDate(nextLessonDate.getDate() + (i * 7)); // Her döngüde 7 gün ekle
+                    
+                    await notificationService.scheduleLessonReminder(
+                        student.fullName, 
+                        nextLessonDate
+                    );
+                }
+            }
+            // -----------------------------------------------------------
 
             // Formu temizle ve kapat
             setHasHomework(false);
@@ -183,11 +209,16 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
             setDuration('60');
             setIsRecurring(false);
             setRecurringCount('4');
-            setUseCredit(false); // Switch'i sıfırla
+            setUseCredit(false); 
 
             fetchDetails();
 
-            Alert.alert("Başarılı", isRecurring ? `${recurringCount} haftalık ders planlandı! 📅` : "Ders eklendi! ✅");
+            Alert.alert(
+                "Başarılı", 
+                isRecurring 
+                    ? `${recurringCount} haftalık ders planlandı ve hatırlatıcıları kuruldu! 📅🔔` 
+                    : "Ders eklendi ve hatırlatıcı kuruldu! ✅🔔"
+            );
 
         } catch (error: any) {
             if (error.response && error.response.data) {

@@ -1,5 +1,8 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import { Alert, Platform } from 'react-native';
 
 // ⚠️ BURAYI GÜNCELLE:
 // '192.168.1.X' kısmına az önce ipconfig ile bulduğun kendi IP adresini yaz.
@@ -26,7 +29,7 @@ api.interceptors.request.use(async (config) => {
 
 // --- AUTH SERVİSLERİ ---
 export const authService = {
-login: async (data: any) => {
+    login: async (data: any) => {
         const response = await api.post('/auth/login', data);
         if (response.data.token) {
             await AsyncStorage.setItem('userToken', response.data.token);
@@ -34,13 +37,11 @@ login: async (data: any) => {
         return response.data;
     },
     
-    // --- GÜNCELLENEN KISIM ---
     register: async (data: any) => {
         // data şunları içerecek: { email, password, fullName }
         const response = await api.post('/auth/register', data);
         return response.data;
     },
-    // -------------------------
 
     logout: async () => {
         await AsyncStorage.removeItem('userToken');
@@ -66,7 +67,7 @@ export const lessonService = {
   getAll: async () => { 
     const res = await api.get('/lessons/all'); 
     return res.data; 
-},
+  },
 };
 
 export const paymentService = {
@@ -88,6 +89,53 @@ export const settingsService = {
     save: async (data: any) => {
         const response = await api.post('/settings', data);
         return response.data;
+    }
+};
+
+export const reportService = {
+    shareStudentReport: async (studentId: string, studentName: string) => {
+        try {
+            // Türkçe karakterleri temizle
+            const safeName = studentName.replace(/[^a-zA-Z0-9]/g, '_');
+            const fileName = `Rapor_${safeName}.pdf`;
+            
+            // --- DÜZELTME BURADA ---
+            // TypeScript hatasını önlemek için 'as any' kullanıyoruz.
+            // documentDirectory boş gelirse cacheDirectory kullan.
+            const docDir = (FileSystem as any).documentDirectory || (FileSystem as any).cacheDirectory;
+            const fileUri = docDir + fileName;
+            // -----------------------
+
+            const token = await AsyncStorage.getItem('userToken');
+
+            const downloadRes = await FileSystem.downloadAsync(
+                `${API_URL}/reports/student-report/${studentId}`,
+                fileUri,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                }
+            );
+
+            if (downloadRes.status !== 200) {
+                throw new Error("Rapor oluşturulamadı (Status: " + downloadRes.status + ")");
+            }
+
+            if (await Sharing.isAvailableAsync()) {
+                await Sharing.shareAsync(fileUri, {
+                    mimeType: 'application/pdf',
+                    dialogTitle: `${studentName} Raporunu Paylaş`,
+                    UTI: 'com.adobe.pdf' // iOS için önemli
+                });
+            } else {
+                Alert.alert("Hata", "Paylaşım özelliği bu cihazda kullanılamıyor.");
+            }
+
+        } catch (error) {
+            console.error("PDF Hatası:", error);
+            Alert.alert("Hata", "Rapor indirilirken bir sorun oluştu.");
+        }
     }
 };
 

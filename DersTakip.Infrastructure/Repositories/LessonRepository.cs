@@ -82,4 +82,12 @@ public class LessonRepository : ILessonRepository
                 (l.StartTime.AddMinutes(l.DurationMinutes)) > startTime
             );
     }
+
+    public async Task<List<Lesson>> GetAllByStudentIdAsync(Guid studentId)
+    {
+        return await _context.Lessons
+            .Where(l => l.StudentId == studentId && !l.IsDeleted) // Silinenleri getirme
+            .OrderByDescending(l => l.StartTime) // En yeni ders en üstte olsun
+            .ToListAsync();
+    }
 }

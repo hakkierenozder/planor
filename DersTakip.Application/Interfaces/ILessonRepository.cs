@@ -21,5 +21,7 @@ namespace DersTakip.Application.Interfaces
         Task<List<Lesson>> GetAllByUserIdAsync(string userId);
 
         Task<bool> HasConflictAsync(string userId, DateTime startTime, DateTime endTime, Guid? excludeLessonId = null);
+
+        Task<List<Lesson>> GetAllByStudentIdAsync(Guid studentId);
     }
 }
