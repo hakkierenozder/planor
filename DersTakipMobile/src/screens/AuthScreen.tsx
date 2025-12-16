@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  Alert, ActivityIndicator, KeyboardAvoidingView, Platform
+  Alert, ActivityIndicator, KeyboardAvoidingView, Platform,ScrollView
 } from 'react-native';
 import { authService } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -47,7 +47,7 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
         console.log('Login attempt...');
         const data = await authService.login({ email, password });
         console.log('Login response:', data);
-        
+
         // Yanıt kontrolü
         if (!data) {
           throw new Error("Sunucudan yanıt alınamadı");
@@ -61,7 +61,7 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
         }
 
         await AsyncStorage.setItem('userToken', String(token));
-        
+
         // Email varsa kaydet
         const userEmail = data.email || data.user?.email || email;
         if (userEmail) {
@@ -69,7 +69,7 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
         }
 
         console.log('Login successful, calling onLoginSuccess');
-        
+
         // Component hala mount edilmişse callback'i çağır
         if (mounted) {
           onLoginSuccess();
@@ -78,10 +78,10 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
         console.log('Register attempt...');
         const data = await authService.register({ email, password });
         console.log('Register response:', data);
-        
+
         if (mounted) {
           Alert.alert(
-            "Kayıt Başarılı", 
+            "Kayıt Başarılı",
             "Hesabınız oluşturuldu. Şimdi giriş yapabilirsiniz.",
             [{ text: "Tamam", onPress: () => setIsLogin(true) }]
           );
@@ -89,15 +89,15 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
       }
     } catch (error: any) {
       console.error("Auth error:", error);
-      
+
       if (!mounted) return;
 
       let errorMessage = "Bir sorun oluştu.";
-      
+
       try {
         if (error?.response?.data) {
           const errorData = error.response.data;
-          
+
           if (typeof errorData === 'string') {
             errorMessage = errorData;
           } else if (typeof errorData === 'object') {
@@ -110,7 +110,7 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
         console.error("Error parsing error message:", parseError);
         errorMessage = "Sunucuya bağlanılamadı";
       }
-      
+
       Alert.alert("Hata", String(errorMessage));
     } finally {
       if (mounted) {
@@ -130,114 +130,119 @@ export default function AuthScreen({ onLoginSuccess }: AuthScreenProps) {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
       >
-        <View style={styles.header}>
-          <Text style={styles.title}>Planör</Text>
-          <Text style={styles.subtitle}>
-            {isLogin ? "Sisteme giriş yapın." : "Yeni bir hesap oluşturun."}
-          </Text>
-        </View>
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.header}>
+            <Text style={styles.title}>Planör</Text>
+            <Text style={styles.subtitle}>
+              {isLogin ? "Sisteme giriş yapın." : "Yeni bir hesap oluşturun."}
+            </Text>
+          </View>
 
-        <View style={styles.formCard}>
-          <Text style={styles.cardTitle}>
-            {isLogin ? "Giriş Yap" : "Kayıt Ol"}
-          </Text>
+          <View style={styles.formCard}>
+            <Text style={styles.cardTitle}>
+              {isLogin ? "Giriş Yap" : "Kayıt Ol"}
+            </Text>
 
-          <Text style={styles.label}>E-Posta</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="ornek@planor.com"
-            placeholderTextColor={COLORS.textLight}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            value={email}
-            onChangeText={setEmail}
-            editable={!loading}
-          />
-
-          <Text style={styles.label}>Şifre</Text>
-          <View style={styles.passwordContainer}>
+            <Text style={styles.label}>E-Posta</Text>
             <TextInput
-              style={styles.passwordInput}
-              placeholder="En az 6 karakter"
+              style={styles.input}
+              placeholder="ornek@planor.com"
               placeholderTextColor={COLORS.textLight}
-              secureTextEntry={!showPassword}
-              value={password}
-              onChangeText={setPassword}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              value={email}
+              onChangeText={setEmail}
               editable={!loading}
             />
-            <TouchableOpacity 
-              onPress={() => setShowPassword(!showPassword)} 
-              style={styles.passwordToggle}
-              activeOpacity={0.7}
-              disabled={loading}
-            >
-              <Ionicons 
-                name={showPassword ? "eye-off" : "eye"} 
-                size={24} 
-                color={COLORS.textLight} 
+
+            <Text style={styles.label}>Şifre</Text>
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="En az 6 karakter"
+                placeholderTextColor={COLORS.textLight}
+                secureTextEntry={!showPassword}
+                value={password}
+                onChangeText={setPassword}
+                editable={!loading}
               />
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.passwordToggle}
+                activeOpacity={0.7}
+                disabled={loading}
+              >
+                <Ionicons
+                  name={showPassword ? "eye-off" : "eye"}
+                  size={24}
+                  color={COLORS.textLight}
+                />
+              </TouchableOpacity>
+            </View>
 
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleAuth}
-            disabled={loading}
-            activeOpacity={0.8}
-          >
-            {loading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text style={styles.buttonText}>
-                {isLogin ? "Giriş Yap" : "Kayıt Ol"}
-              </Text>
-            )}
-          </TouchableOpacity>
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>
-              {isLogin ? "Hesabınız yok mu?" : "Zaten hesabınız var mı?"}
-            </Text>
-            <TouchableOpacity 
-              onPress={() => setIsLogin(!isLogin)}
-              activeOpacity={0.7}
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleAuth}
               disabled={loading}
+              activeOpacity={0.8}
             >
-              <Text style={styles.linkText}>
-                {isLogin ? " Kayıt Ol" : " Giriş Yap"}
-              </Text>
+              {loading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text style={styles.buttonText}>
+                  {isLogin ? "Giriş Yap" : "Kayıt Ol"}
+                </Text>
+              )}
             </TouchableOpacity>
-          </View>
-        </View>
 
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>
+                {isLogin ? "Hesabınız yok mu?" : "Zaten hesabınız var mı?"}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setIsLogin(!isLogin)}
+                activeOpacity={0.7}
+                disabled={loading}
+              >
+                <Text style={styles.linkText}>
+                  {isLogin ? " Kayıt Ol" : " Giriş Yap"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1 
+  container: {
+    flex: 1
   },
-  keyboardView: { 
-    flex: 1, 
-    justifyContent: 'center', 
-    padding: 25 
+  keyboardView: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 25
   },
-  header: { 
-    alignItems: 'center', 
-    marginBottom: 50 
+  header: {
+    alignItems: 'center',
+    marginBottom: 50
   },
-  title: { 
-    fontSize: 40, 
-    fontWeight: '800', 
-    color: COLORS.white, 
-    letterSpacing: -1 
+  title: {
+    fontSize: 40,
+    fontWeight: '800',
+    color: COLORS.white,
+    letterSpacing: -1
   },
-  subtitle: { 
-    fontSize: 16, 
-    color: 'rgba(255,255,255,0.8)', 
-    marginTop: 8 
+  subtitle: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 8
   },
   formCard: {
     backgroundColor: COLORS.white,
@@ -249,19 +254,19 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 15
   },
-  cardTitle: { 
-    fontSize: 24, 
-    fontWeight: 'bold', 
-    color: COLORS.text, 
-    marginBottom: 20, 
-    textAlign: 'center' 
+  cardTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginBottom: 20,
+    textAlign: 'center'
   },
-  label: { 
-    fontSize: 14, 
-    fontWeight: '600', 
-    color: COLORS.text, 
-    marginBottom: 8, 
-    marginLeft: 4 
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 8,
+    marginLeft: 4
   },
   input: {
     backgroundColor: COLORS.background,
@@ -307,23 +312,23 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.7
   },
-  buttonText: { 
-    color: 'white', 
-    fontWeight: 'bold', 
-    fontSize: 18 
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 18
   },
-  footer: { 
-    flexDirection: 'row', 
-    justifyContent: 'center', 
-    marginTop: 25 
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 25
   },
-  footerText: { 
-    color: COLORS.textLight, 
-    fontSize: 14 
+  footerText: {
+    color: COLORS.textLight,
+    fontSize: 14
   },
-  linkText: { 
-    color: COLORS.primary, 
-    fontWeight: 'bold', 
-    fontSize: 14 
+  linkText: {
+    color: COLORS.primary,
+    fontWeight: 'bold',
+    fontSize: 14
   }
 });

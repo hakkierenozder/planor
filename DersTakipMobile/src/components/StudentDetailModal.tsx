@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useState } from 'react';
 import {
     Modal, View, Text, StyleSheet, TouchableOpacity,
-    ActivityIndicator, FlatList, Alert, TextInput, Platform, SafeAreaView, Switch
+    ActivityIndicator, FlatList, Alert, TextInput, Platform, SafeAreaView, Switch, KeyboardAvoidingView, ScrollView
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { studentService, lessonService, paymentService, API_URL } from '../services/api';
@@ -279,8 +279,11 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
 
     return (
         <Modal animationType="slide" visible={visible} onRequestClose={onClose}>
-            <SafeAreaView style={styles.container}>
-
+            <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
+                <KeyboardAvoidingView
+                    style={{ flex: 1 }}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                >
                 {/* HEADER */}
                 <View style={styles.header}>
                     <TouchableOpacity onPress={onClose} style={styles.backBtn}>
@@ -333,7 +336,7 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
                         {/* LIST */}
                         <View style={styles.listContainer}>
                             {activeTab === 'lessons' ? (
-<FlatList
+                                <FlatList
                                     data={lessons}
                                     keyExtractor={item => item.id}
                                     contentContainerStyle={{ paddingBottom: 100 }}
@@ -341,7 +344,7 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
                                     renderItem={({ item }) => {
                                         // 1. Bu bir Paket Satışı mı? (Süre 0 ise)
                                         const isPackageSale = item.durationMinutes === 0;
-                                        
+
                                         // 2. Bu ders Krediden mi düştü? (Backend'den gelen veri)
                                         // Not: Backend 'IsPaidByCredit' gönderiyor, JSON'da 'isPaidByCredit' olabilir.
                                         const isCreditLesson = item.isPaidByCredit === true;
@@ -350,16 +353,16 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
                                             <View style={styles.cardItem}>
                                                 {/* --- TARİH KUTUSU --- */}
                                                 <View style={[
-                                                    styles.dateBadge, 
+                                                    styles.dateBadge,
                                                     isPackageSale && { backgroundColor: '#FCE7F3' }, // Paket Satışı (Pembe)
                                                     (!isPackageSale && isCreditLesson) && { backgroundColor: '#FEF3C7' } // Paketten Düşen (Sarı/Turuncu)
-                                                ]}> 
+                                                ]}>
                                                     {isPackageSale ? (
-                                                        <Text style={{fontSize: 20}}>📦</Text> 
+                                                        <Text style={{ fontSize: 20 }}>📦</Text>
                                                     ) : (
                                                         <>
                                                             <Text style={[
-                                                                styles.dayText, 
+                                                                styles.dayText,
                                                                 isCreditLesson && { color: '#D97706' } // Krediyse Rengi Turuncu yap
                                                             ]}>
                                                                 {new Date(item.startTime).getDate()}
@@ -377,11 +380,11 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
                                                 {/* --- ORTA KISIM (BAŞLIK & DETAY) --- */}
                                                 <View style={{ flex: 1, marginLeft: 15 }}>
                                                     <Text style={styles.itemTitle}>{item.topic}</Text>
-                                                    
+
                                                     {/* Alt Metin Mantığı */}
                                                     <Text style={styles.itemSub}>
-                                                        {isPackageSale 
-                                                            ? "Paket Tanımlaması" 
+                                                        {isPackageSale
+                                                            ? "Paket Tanımlaması"
                                                             : isCreditLesson
                                                                 ? `🎫 Paketten • ${item.durationMinutes} dk`
                                                                 : `${item.durationMinutes} dk • ${new Date(item.startTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`
@@ -390,7 +393,7 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
                                                 </View>
 
                                                 {/* --- BUTONLAR --- */}
-                                                
+
                                                 {/* Mesaj Butonu (Sadece Gerçek Derslerde) */}
                                                 {!isPackageSale && (
                                                     <TouchableOpacity
@@ -400,7 +403,7 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
                                                                 const msg = whatsappService.templates.lessonCompleted(
                                                                     student.fullName,
                                                                     item.topic,
-                                                                    item.homeworkDescription 
+                                                                    item.homeworkDescription
                                                                 );
                                                                 whatsappService.send(student.phoneNumber, msg);
                                                             } else {
@@ -637,6 +640,7 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
 
                     </>
                 )}
+                </KeyboardAvoidingView>
             </SafeAreaView>
         </Modal>
     );

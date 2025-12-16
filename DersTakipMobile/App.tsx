@@ -1,8 +1,8 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState, useCallback } from 'react';
-import { 
-  StyleSheet, Text, View, FlatList, ActivityIndicator, 
-  TouchableOpacity, Modal, TextInput, Alert, SafeAreaView 
+import {
+  StyleSheet, Text, View, FlatList, ActivityIndicator,
+  TouchableOpacity, Modal, TextInput, Alert, SafeAreaView,KeyboardAvoidingView, ScrollView,Platform
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { studentService, dashboardService, authService } from './src/services/api';
@@ -25,10 +25,10 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
-  
+
   // --- GÜNCELLEME 1: Başlangıç state'ini null yaptık ---
   const [dashboardData, setDashboardData] = useState<any>(null);
-  
+
   const [activeTab, setActiveTab] = useState<'home' | 'calendar' | 'reports'>('home');
 
   const [name, setName] = useState('');
@@ -61,12 +61,12 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
       return;
     }
     try {
-      await studentService.create({ 
-        fullName: name, 
-        phoneNumber: phone, 
-        hourlyRate: parseFloat(rate), 
-        guardianName: "", 
-        notes: "" 
+      await studentService.create({
+        fullName: name,
+        phoneNumber: phone,
+        hourlyRate: parseFloat(rate),
+        guardianName: "",
+        notes: ""
       });
       setModalVisible(false);
       setName('');
@@ -86,7 +86,7 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
         data={students}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingBottom: 100 }}
-        
+
         ListHeaderComponent={
           <View style={styles.dashboardContainer}>
             <View style={styles.headerRow}>
@@ -98,7 +98,7 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
                 <Text style={styles.logoutIcon}>🚪</Text>
               </TouchableOpacity>
             </View>
-            
+
             <LinearGradient
               colors={['#818cf8', '#4f46e5']}
               start={{ x: 0, y: 0 }}
@@ -153,9 +153,9 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
         }
 
         renderItem={({ item }) => (
-          <TouchableOpacity 
-            activeOpacity={0.8} 
-            onPress={() => setSelectedStudent(item)} 
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setSelectedStudent(item)}
             style={styles.studentCard}
           >
             <View style={styles.avatarContainer}>
@@ -175,9 +175,9 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
           </TouchableOpacity>
         )}
       />
-      
-      <TouchableOpacity 
-        style={styles.fab} 
+
+      <TouchableOpacity
+        style={styles.fab}
         onPress={() => setModalVisible(true)}
       >
         <Text style={styles.fabIcon}>+</Text>
@@ -188,12 +188,12 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-      
+
       <View style={styles.contentContainer}>
         {activeTab === 'home' ? (
           loading ? (
             <View style={styles.centerLoading}>
-              <ActivityIndicator size="large" color={COLORS.primary}/>
+              <ActivityIndicator size="large" color={COLORS.primary} />
             </View>
           ) : (
             renderHome()
@@ -206,8 +206,8 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
       </View>
 
       <View style={styles.tabBar}>
-        <TouchableOpacity 
-          onPress={() => setActiveTab('home')} 
+        <TouchableOpacity
+          onPress={() => setActiveTab('home')}
           style={styles.tabItem}
         >
           <Text style={{ fontSize: 24, color: activeTab === 'home' ? COLORS.primary : '#9CA3AF' }}>
@@ -217,9 +217,9 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
             Ana Sayfa
           </Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          onPress={() => setActiveTab('calendar')} 
+
+        <TouchableOpacity
+          onPress={() => setActiveTab('calendar')}
           style={styles.tabItem}
         >
           <Text style={{ fontSize: 24, color: activeTab === 'calendar' ? COLORS.primary : '#9CA3AF' }}>
@@ -230,8 +230,8 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          onPress={() => setActiveTab('reports')} 
+        <TouchableOpacity
+          onPress={() => setActiveTab('reports')}
           style={styles.tabItem}
         >
           <Text style={{ fontSize: 24, color: activeTab === 'reports' ? COLORS.primary : '#9CA3AF' }}>
@@ -244,53 +244,65 @@ function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
       </View>
 
       <Modal animationType="slide" transparent={true} visible={modalVisible}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Yeni Öğrenci</Text>
-            <TextInput 
-              style={styles.input} 
-              placeholder="Ad Soyad" 
-              value={name} 
-              onChangeText={setName} 
-            />
-            <TextInput 
-              style={styles.input} 
-              placeholder="Telefon" 
-              keyboardType="phone-pad" 
-              value={phone} 
-              onChangeText={setPhone} 
-            />
-            <TextInput 
-              style={styles.input} 
-              placeholder="Ücret (TL)" 
-              keyboardType="numeric" 
-              value={rate} 
-              onChangeText={setRate} 
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={[styles.btn, styles.btnOutline]} 
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={styles.btnOutlineText}>Vazgeç</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.btn, styles.btnPrimary]} 
-                onPress={handleAddStudent}
-              >
-                <Text style={styles.btnPrimaryText}>Kaydet</Text>
-              </TouchableOpacity>
+        {/* KeyboardAvoidingView EN DIŞA */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalOverlay} // Overlay stili buraya taşındı
+        >
+          {/* ScrollView EKLENDİ */}
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end' }}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Yeni Öğrenci</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ad Soyad"
+                  value={name}
+                  onChangeText={setName}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Telefon"
+                  keyboardType="phone-pad"
+                  value={phone}
+                  onChangeText={setPhone}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ücret (TL)"
+                  keyboardType="numeric"
+                  value={rate}
+                  onChangeText={setRate}
+                />
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity
+                    style={[styles.btn, styles.btnOutline]}
+                    onPress={() => setModalVisible(false)}
+                  >
+                    <Text style={styles.btnOutlineText}>Vazgeç</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.btn, styles.btnPrimary]}
+                    onPress={handleAddStudent}
+                  >
+                    <Text style={styles.btnPrimaryText}>Kaydet</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
-          </View>
-        </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
 
-      <StudentDetailModal 
+      <StudentDetailModal
         visible={selectedStudent !== null}
         student={selectedStudent}
-        onClose={() => { 
-          setSelectedStudent(null); 
-          fetchAllData(); 
+        onClose={() => {
+          setSelectedStudent(null);
+          fetchAllData();
         }}
       />
     </SafeAreaView>
@@ -320,16 +332,16 @@ export default function App() {
   if (isLoading) {
     return (
       <View style={styles.centerLoading}>
-        <ActivityIndicator size="large" color={COLORS.primary}/>
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
 
-  return isAuthenticated 
+  return isAuthenticated
     ? <AuthenticatedApp onLogout={() => {
-        authService.logout();
-        setIsAuthenticated(false);
-      }} />
+      authService.logout();
+      setIsAuthenticated(false);
+    }} />
     : <AuthScreen onLoginSuccess={() => setIsAuthenticated(true)} />;
 }
 
@@ -337,7 +349,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },
   centerLoading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   contentContainer: { flex: 1 },
-  
+
   dashboardContainer: { padding: 20, paddingTop: 10 },
   headerRow: {
     flexDirection: 'row',
@@ -345,49 +357,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20
   },
-  
+
   welcomeText: {
     fontSize: 14,
     color: COLORS.textLight,
     fontWeight: '600',
     marginBottom: 2
   },
-  
-  greetingText: { 
-    fontSize: 26, 
-    fontWeight: '800', 
+
+  greetingText: {
+    fontSize: 26,
+    fontWeight: '800',
     color: COLORS.textDark,
-    letterSpacing: -0.5 
+    letterSpacing: -0.5
   },
-  
+
   logoutButton: {
-    padding: 12, 
-    backgroundColor: 'white', 
+    padding: 12,
+    backgroundColor: 'white',
     borderRadius: 14,
     borderWidth: 1,
     borderColor: '#E2E8F0'
   },
-  
+
   logoutIcon: { fontSize: 18 },
 
   summaryCard: {
-    borderRadius: 24, 
+    borderRadius: 24,
     padding: 24,
-    shadowColor: "#4f46e5", 
-    shadowOffset: { width: 0, height: 10 }, 
-    shadowOpacity: 0.25, 
+    shadowColor: "#4f46e5",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
     shadowRadius: 15,
-    elevation: 10, 
+    elevation: 10,
     marginBottom: 25,
     marginTop: 15
   },
-  
+
   summaryTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start'
   },
-  
+
   summaryLabel: {
     color: 'rgba(255,255,255,0.8)',
     fontSize: 13,
@@ -396,44 +408,44 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5
   },
-  
+
   summaryValue: {
     color: 'white',
     fontSize: 36,
     fontWeight: '800',
     letterSpacing: -1
   },
-  
+
   iconCircle: {
     backgroundColor: 'rgba(255,255,255,0.15)',
     padding: 12,
     borderRadius: 18
   },
-  
+
   iconEmoji: { fontSize: 24 },
-  
+
   divider: {
     height: 1,
     backgroundColor: 'rgba(255,255,255,0.2)',
     marginVertical: 20
   },
-  
+
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center'
   },
-  
+
   verticalLine: {
     width: 1,
     height: 40,
     backgroundColor: 'rgba(255,255,255,0.2)'
   },
-  
+
   statItem: { alignItems: 'center' },
   statNumber: { color: 'white', fontSize: 22, fontWeight: 'bold' },
   statLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 2 },
-  
+
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
@@ -443,13 +455,13 @@ const styles = StyleSheet.create({
   },
 
   studentCard: {
-    backgroundColor: 'white', 
-    flexDirection: 'row', 
+    backgroundColor: 'white',
+    flexDirection: 'row',
     alignItems: 'center',
-    padding: 18, 
-    marginHorizontal: 20, 
-    marginBottom: 12, 
-    borderRadius: 20, 
+    padding: 18,
+    marginHorizontal: 20,
+    marginBottom: 12,
+    borderRadius: 20,
     shadowColor: "#64748B",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
@@ -458,7 +470,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F1F5F9'
   },
-  
+
   avatarContainer: {
     width: 54,
     height: 54,
@@ -470,13 +482,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E0E7FF'
   },
-  
+
   avatarText: {
     color: COLORS.primary,
     fontSize: 22,
     fontWeight: '700'
   },
-  
+
   studentInfo: { flex: 1 },
   studentName: { fontSize: 16, fontWeight: '700', color: '#334155' },
   studentRate: {
@@ -485,7 +497,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontWeight: '500'
   },
-  
+
   arrowIcon: { paddingLeft: 10 },
   arrowText: { color: '#C7C7CC' },
 
@@ -494,7 +506,7 @@ const styles = StyleSheet.create({
     marginTop: 60,
     opacity: 0.7
   },
-  
+
   emptyStateEmoji: { fontSize: 50, marginBottom: 15, opacity: 0.8 },
   emptyStateTitle: {
     fontSize: 20,
@@ -502,7 +514,7 @@ const styles = StyleSheet.create({
     color: COLORS.textDark,
     marginBottom: 8
   },
-  
+
   emptyStateText: { fontSize: 14, color: COLORS.textLight },
 
   fab: {
@@ -521,7 +533,7 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 8
   },
-  
+
   fabIcon: { color: 'white', fontSize: 32, marginTop: -3 },
 
   modalOverlay: {
@@ -529,7 +541,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'flex-end'
   },
-  
+
   modalContent: {
     backgroundColor: 'white',
     borderTopLeftRadius: 32,
@@ -537,7 +549,7 @@ const styles = StyleSheet.create({
     padding: 30,
     minHeight: 450
   },
-  
+
   modalTitle: {
     fontSize: 24,
     fontWeight: '800',
@@ -545,8 +557,8 @@ const styles = StyleSheet.create({
     marginBottom: 25,
     textAlign: 'center'
   },
-  
-  input: { 
+
+  input: {
     backgroundColor: '#F8FAFC',
     borderRadius: 16,
     padding: 18,
@@ -555,13 +567,13 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     fontSize: 16
   },
-  
+
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 15
   },
-  
+
   btn: {
     flex: 1,
     padding: 18,
@@ -569,20 +581,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 6
   },
-  
+
   btnOutline: {
     backgroundColor: 'transparent',
     borderWidth: 1.5,
     borderColor: '#CBD5E1'
   },
-  
+
   btnPrimary: {
     backgroundColor: COLORS.primary,
     shadowColor: COLORS.primary,
     shadowOpacity: 0.4,
     shadowOffset: { width: 0, height: 4 }
   },
-  
+
   btnOutlineText: { fontWeight: '700', fontSize: 16, color: COLORS.textLight },
   btnPrimaryText: { fontWeight: '700', fontSize: 16, color: 'white' },
 
@@ -599,9 +611,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 10
   },
-  
+
   tabItem: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  
+
   tabLabel: {
     fontSize: 11,
     marginTop: 4,
