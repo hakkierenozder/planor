@@ -92,7 +92,7 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
             ]);
             setBalanceInfo(balanceRes);
             // Güncel krediyi backend'den alıp state'i güncelle (varsa)
-            if(balanceRes && balanceRes.credits !== undefined) setCurrentCredits(balanceRes.credits);
+            if (balanceRes && balanceRes.credits !== undefined) setCurrentCredits(balanceRes.credits);
 
             setLessons(lessonsRes);
             setPayments(paymentsRes);
@@ -289,13 +289,6 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
 
                     <Text style={styles.headerTitle}>{student.fullName}</Text>
 
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 5 }}>
-                        <Text style={{ fontSize: 14, color: '#666' }}>Bakiye: </Text>
-                        <Text style={{ fontSize: 16, fontWeight: 'bold', color: currentCredits > 0 ? COLORS.success : COLORS.danger }}>
-                            {currentCredits} Ders Kredisi 🎫
-                        </Text>
-                    </View>
-
                     <TouchableOpacity onPress={openEditModal} style={[styles.backBtn, { backgroundColor: '#EEF2FF' }]}>
                         <Text style={{ fontSize: 20 }}>✏️</Text>
                     </TouchableOpacity>
@@ -305,22 +298,25 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
                     <>
                         {/* BALANCE CARD */}
                         <View style={styles.balanceContainer}>
-                            <View style={styles.balanceCard}>
-                                <Text style={styles.balanceLabel}>Güncel Bakiye</Text>
-                                <Text style={[styles.balanceValue, { color: balanceInfo?.currentBalance > 0 ? '#EF4444' : '#10B981' }]}>
-                                    {balanceInfo?.currentBalance > 0 ? `-${balanceInfo?.currentBalance} ₺` : `+${Math.abs(balanceInfo?.currentBalance)} ₺`}
-                                </Text>
-                                <View style={styles.balanceRow}>
-                                    <View style={styles.balanceItem}>
-                                        <Text style={styles.subVal}>{balanceInfo?.totalDebt}₺</Text>
-                                        <Text style={styles.subLabel}>Hizmet</Text>
-                                    </View>
-                                    <View style={styles.verticalDivider} />
-                                    <View style={styles.balanceItem}>
-                                        <Text style={styles.subVal}>{balanceInfo?.totalPayment}₺</Text>
-                                        <Text style={styles.subLabel}>Tahsilat</Text>
+                            <View style={[styles.modernCard, { backgroundColor: (balanceInfo?.currentBalance || 0) >= 0 ? '#10B981' : '#EF4444' }]}>
+
+                                {/* Üst Satır: Para Durumu */}
+                                <View>
+                                    <Text style={styles.cardLabelWhite}>Kalan Bakiye</Text>
+                                    <Text style={styles.cardValueWhite}>
+                                        {(balanceInfo?.currentBalance || 0) >= 0 ? '+' : ''}{balanceInfo?.currentBalance} ₺
+                                    </Text>
+                                </View>
+
+                                {/* Sağ Taraf: Kredi Durumu (Bilet) */}
+                                <View style={styles.creditBadge}>
+                                    <Text style={{ fontSize: 24 }}>🎫</Text>
+                                    <View style={{ alignItems: 'flex-end' }}>
+                                        <Text style={[styles.cardLabelWhite, { fontSize: 12 }]}>Kredi</Text>
+                                        <Text style={[styles.cardValueWhite, { fontSize: 20 }]}>{currentCredits}</Text>
                                     </View>
                                 </View>
+
                             </View>
                         </View>
 
@@ -337,49 +333,79 @@ export default function StudentDetailModal({ visible, student, onClose }: Studen
                         {/* LIST */}
                         <View style={styles.listContainer}>
                             {activeTab === 'lessons' ? (
-                                <FlatList
+<FlatList
                                     data={lessons}
                                     keyExtractor={item => item.id}
                                     contentContainerStyle={{ paddingBottom: 100 }}
-                                    ListEmptyComponent={<Text style={styles.emptyText}>Henüz ders yok.</Text>}
-                                    renderItem={({ item }) => (
-                                        <View style={styles.cardItem}>
-                                            <View style={styles.dateBadge}>
-                                                <Text style={styles.dayText}>{new Date(item.startTime).getDate()}</Text>
-                                                <Text style={styles.monthText}>{new Date(item.startTime).toLocaleDateString('tr-TR', { month: 'short' })}</Text>
+                                    ListEmptyComponent={<Text style={styles.emptyText}>Henüz kayıt yok.</Text>}
+                                    renderItem={({ item }) => {
+                                        // Kontrol: Bu bir ders mi yoksa Paket Satışı mı?
+                                        // (Backend'de paket satarken süreyi 0 yapmıştık)
+                                        const isPackageSale = item.durationMinutes === 0;
+
+                                        return (
+                                            <View style={styles.cardItem}>
+                                                {/* TARİH veya İKON KUTUSU */}
+                                                <View style={[styles.dateBadge, isPackageSale && { backgroundColor: '#FCE7F3' }]}> 
+                                                    {isPackageSale ? (
+                                                        <Text style={{fontSize: 20}}>📦</Text> 
+                                                    ) : (
+                                                        <>
+                                                            <Text style={styles.dayText}>{new Date(item.startTime).getDate()}</Text>
+                                                            <Text style={styles.monthText}>{new Date(item.startTime).toLocaleDateString('tr-TR', { month: 'short' })}</Text>
+                                                        </>
+                                                    )}
+                                                </View>
+
+                                                {/* ORTA KISIM (BAŞLIK & DETAY) */}
+                                                <View style={{ flex: 1, marginLeft: 15 }}>
+                                                    <Text style={styles.itemTitle}>{item.topic}</Text>
+                                                    <Text style={styles.itemSub}>
+                                                        {isPackageSale 
+                                                            ? "Paket Tanımlaması" 
+                                                            : `${item.durationMinutes} dk • ${new Date(item.startTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`
+                                                        }
+                                                    </Text>
+                                                </View>
+
+                                                {/* BUTONLAR */}
+                                                
+                                                {/* Mesaj Butonu (Sadece Gerçek Derslerde Göster) */}
+                                                {!isPackageSale && (
+                                                    <TouchableOpacity
+                                                        style={[styles.iconBtn, { backgroundColor: '#E0F2F1', marginRight: 8 }]}
+                                                        onPress={() => {
+                                                            if (item.status === 2 || item.status === "Completed") {
+                                                                const msg = whatsappService.templates.lessonCompleted(
+                                                                    student.fullName,
+                                                                    item.topic,
+                                                                    item.homeworkDescription 
+                                                                );
+                                                                whatsappService.send(student.phoneNumber, msg);
+                                                            } else {
+                                                                const msg = whatsappService.templates.lessonCreated(
+                                                                    student.fullName,
+                                                                    new Date(item.startTime),
+                                                                    item.topic
+                                                                );
+                                                                whatsappService.send(student.phoneNumber, msg);
+                                                            }
+                                                        }}
+                                                    >
+                                                        <Text style={{ fontSize: 16 }}>💬</Text>
+                                                    </TouchableOpacity>
+                                                )}
+
+                                                {/* Tamamla Butonu (Sadece Planlanmış Derslerde Göster) */}
+                                                {item.status === 1 && (
+                                                    <TouchableOpacity onPress={() => handleComplete(item)} style={styles.checkBtn}><Text>✔</Text></TouchableOpacity>
+                                                )}
+
+                                                {/* Sil Butonu (Hepsinde Göster) */}
+                                                <TouchableOpacity onPress={() => handleDelete(item.id, 'lesson')} style={styles.delBtn}><Text>🗑</Text></TouchableOpacity>
                                             </View>
-                                            <View style={{ flex: 1, marginLeft: 15 }}>
-                                                <Text style={styles.itemTitle}>{item.topic}</Text>
-                                                <Text style={styles.itemSub}>{item.durationMinutes} dk • {new Date(item.startTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</Text>
-                                            </View>
-                                            <TouchableOpacity
-                                                style={[styles.iconBtn, { backgroundColor: '#E0F2F1', marginRight: 8 }]}
-                                                onPress={() => {
-                                                    if (item.status === 2 || item.status === "Completed") {
-                                                        const msg = whatsappService.templates.lessonCompleted(
-                                                            student.fullName,
-                                                            item.topic,
-                                                            item.homeworkDescription
-                                                        );
-                                                        whatsappService.send(student.phoneNumber, msg);
-                                                    } else {
-                                                        const msg = whatsappService.templates.lessonCreated(
-                                                            student.fullName,
-                                                            new Date(item.startTime),
-                                                            item.topic
-                                                        );
-                                                        whatsappService.send(student.phoneNumber, msg);
-                                                    }
-                                                }}
-                                            >
-                                                <Text style={{ fontSize: 16 }}>💬</Text>
-                                            </TouchableOpacity>
-                                            {item.status === 1 && (
-                                                <TouchableOpacity onPress={() => handleComplete(item)} style={styles.checkBtn}><Text>✔</Text></TouchableOpacity>
-                                            )}
-                                            <TouchableOpacity onPress={() => handleDelete(item.id, 'lesson')} style={styles.delBtn}><Text>🗑</Text></TouchableOpacity>
-                                        </View>
-                                    )}
+                                        );
+                                    }}
                                 />
                             ) : (
                                 <FlatList
@@ -679,5 +705,40 @@ const styles = StyleSheet.create({
         color: 'white',
         fontWeight: 'bold',
         fontSize: 16
-    }
+    },
+    // ... diğer stiller ...
+
+    // YENİ EKLENECEK MODERN STİLLER
+    modernCard: {
+        borderRadius: 20,
+        padding: 25,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 5,
+        marginBottom: 10
+    },
+    cardLabelWhite: {
+        color: 'rgba(255,255,255,0.8)',
+        fontSize: 14,
+        fontWeight: '600',
+        marginBottom: 4
+    },
+    cardValueWhite: {
+        color: '#FFF',
+        fontSize: 32,
+        fontWeight: 'bold'
+    },
+    creditBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        paddingHorizontal: 15,
+        paddingVertical: 10,
+        borderRadius: 15
+    },
 });

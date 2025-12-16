@@ -9,4 +9,5 @@ public class StudentBalanceDto
     public decimal TotalPayment { get; set; }   // Toplam Tahsilat
     public decimal CurrentBalance { get; set; } // Güncel Durum (+ ise borçlu, - ise alacaklı)
     public string StatusMessage { get; set; }   // "Borçlu", "Ödeşildi", "Alacaklı"
+    public int Credits { get; set; }
 }

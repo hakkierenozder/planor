@@ -247,7 +247,6 @@ public class StudentsController : ControllerBase
         return File(pdfBytes, "application/pdf", $"Ekstre_{safeName}_{DateTime.Now:yyyyMMdd}.pdf");
     }
 
-    // YENİ: PAKET (KREDİ) YÜKLEME
     [HttpPost("add-package")]
     public async Task<IActionResult> AddPackage([FromBody] AddPackageRequest request)
     {
@@ -258,19 +257,35 @@ public class StudentsController : ControllerBase
         student.Credits += request.CreditAmount;
         await _studentRepository.UpdateAsync(student);
 
-        // 2. Ödeme Kaydı Oluştur (Otomatik)
+        // 2. Paket Satışını "Borç" Olarak Kaydet (YENİ VE ÖNEMLİ ADIM) 📝
+        // Bu sayede "Alacaklı" durumu oluşmaz, hesap 0'lanır.
+        var packageSaleRecord = new Lesson
+        {
+            StudentId = request.StudentId,
+            StartTime = DateTime.UtcNow,
+            DurationMinutes = 0, // Süresi yok
+            Topic = request.PackageName ?? $"{request.CreditAmount} Derslik Paket Satışı",
+            InternalNotes = "Paket tanımlaması sistem tarafından oluşturuldu.",
+            Status = LessonStatus.Completed, // Tamamlandı ki borca yansısın
+            PriceSnapshot = request.TotalPrice, // 1500 TL Borç
+            IsPaidByCredit = false, // Krediyle ödenmedi, para/borç karşılığı satıldı
+            IsCharged = true
+        };
+        await _lessonRepository.CreateAsync(packageSaleRecord);
+
+        // 3. Ödemeyi Kaydet (Tahsilat) 💰
         var payment = new Payment
         {
             StudentId = request.StudentId,
-            Amount = request.TotalPrice,
-            PaymentDate = DateTime.UtcNow, // Veya yerel saat
-            Method = PaymentMethod.Cash, // Varsayılan Nakit, istersen parametre alabilirsin
-            Description = request.PackageName ?? $"{request.CreditAmount} Derslik Paket Alımı"
+            Amount = request.TotalPrice, // 1500 TL Ödeme
+            PaymentDate = DateTime.UtcNow,
+            Method = PaymentMethod.Cash,
+            Description = request.PackageName ?? $"{request.CreditAmount} Derslik Paket Tahsilatı"
         };
 
         await _paymentRepository.CreateAsync(payment);
 
-        return Ok(new { message = "Paket başarıyla tanımlandı.", newBalance = student.Credits });
+        return Ok(new { message = "Paket tanımlandı, satış ve ödeme işlendi.", newBalance = student.Credits });
     }
 
     // Yardımcı Sınıf

@@ -74,7 +74,8 @@ public class StudentRepository : IStudentRepository
             TotalDebt = totalDebt,
             TotalPayment = totalPayment,
             CurrentBalance = balance,
-            StatusMessage = statusMsg
+            StatusMessage = statusMsg,
+            Credits = student.Credits
         };
     }
 
